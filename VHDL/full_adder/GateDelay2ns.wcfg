@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/Users/buchha2/Desktop/code/VHDL/full_adder/full_adder_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="full_adder_tb" />
+            <top_module name="std_logic_1164" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="8" />
+   <wvobject fp_name="/full_adder_tb/a" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">a</obj_property>
+      <obj_property name="ObjectShortName">a</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/b" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">b</obj_property>
+      <obj_property name="ObjectShortName">b</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/cin" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cin</obj_property>
+      <obj_property name="ObjectShortName">cin</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/sum" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sum</obj_property>
+      <obj_property name="ObjectShortName">sum</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/cout" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cout</obj_property>
+      <obj_property name="ObjectShortName">cout</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/uut/s1" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">s1</obj_property>
+      <obj_property name="ObjectShortName">s1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/uut/s2" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">s2</obj_property>
+      <obj_property name="ObjectShortName">s2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/full_adder_tb/uut/s3" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">s3</obj_property>
+      <obj_property name="ObjectShortName">s3</obj_property>
+   </wvobject>
+</wave_config>

@@ -1,0 +1,4 @@
+vhdl isim_temp "DFF.vhd"
+vhdl isim_temp "SR4.vhd"
+vhdl isim_temp "PRSG.vhd"
+vhdl isim_temp "PRSG_tb.vhd"

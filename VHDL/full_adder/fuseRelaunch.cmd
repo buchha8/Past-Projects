@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -o "C:/Users/buchha2/Desktop/code/VHDL/full_adder/full_adder_tb_isim_beh.exe" -prj "C:/Users/buchha2/Desktop/code/VHDL/full_adder/full_adder_tb_beh.prj" "work.full_adder_tb" 

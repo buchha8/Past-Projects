@@ -1,0 +1,4 @@
+vhdl work "DFF.vhd"
+vhdl work "SR4.vhd"
+vhdl work "PRSG.vhd"
+vhdl work "PRSG_tb.vhd"

@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -o "C:/Users/buchha2/Desktop/code/VHDL/pr_encoder/pr_encoder_tb_isim_beh.exe" -prj "C:/Users/buchha2/Desktop/code/VHDL/pr_encoder/pr_encoder_tb_beh.prj" "work.pr_encoder_tb" 

@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -o "C:/Users/buchha2/Desktop/code/VHDL/DFF/PRSG_tb_isim_beh.exe" -prj "C:/Users/buchha2/Desktop/code/VHDL/DFF/PRSG_tb_beh.prj" "work.PRSG_tb" 

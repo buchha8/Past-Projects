@@ -1,0 +1,2 @@
+vhdl work "../../../Grad School HW/CPE 690/HW2/prob1/b/pr_encoder.vhd"
+vhdl work "pr_encoder_tb.vhd"
