@@ -1,0 +1,20 @@
+[Unit]
+Description=Innovation Robot Web Server
+After=network.target
+
+[Service]
+Type=simple
+User=%iUSER%
+Group=%iGROUP%
+WorkingDirectory=/opt/innovation
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/opt/innovation/venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
