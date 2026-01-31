@@ -46,7 +46,12 @@ source "$VENV_DIR/bin/activate"
 # -----------------------------
 echo "Installing Python dependencies..."
 pip install --upgrade pip
-pip install -r "$DEV_DIR/requirements.txt"
+if [ -f "$DEV_DIR/requirements.txt" ]; then
+    pip install -r "$DEV_DIR/requirements.txt"
+else
+    echo "ERROR: Requirements file $DEV_DIR/requirements.txt not found!"
+    exit 1
+fi
 
 # -----------------------------
 # 5. Copy server code
