@@ -8,7 +8,7 @@ set -u  # Treat unset variables as errors
 # -----------------------------
 # 0. Configuration
 # -----------------------------
-DEV_DIR="$HOME/git/Past-Projects/innovation"
+DEV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="/opt/innovation"
 VENV_DIR="$DEPLOY_DIR/venv"
 DEV_SERVICE="$DEV_DIR/innovation.service"
