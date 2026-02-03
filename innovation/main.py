@@ -2,10 +2,17 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import asyncio
+from pathlib import Path
 import signal
 import sys
 
 app = FastAPI(title="Innovation Control")
+
+# Mount static folder
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Path to HTML file
+HTML_FILE = Path(__file__).parent / "dashboard.html"
 
 # ----------------------------
 # Lifecycle hooks
@@ -35,15 +42,9 @@ async def shutdown():
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return """
-    <html>
-        <head><title>Innovation</title></head>
-        <body>
-            <h1>Innovation Control</h1>
-            <p>Status: OK</p>
-        </body>
-    </html>
-    """
+    # Read HTML file and return as response
+    html_content = HTML_FILE.read_text(encoding="utf-8")
+    return HTMLResponse(content=html_content)
 
 
 @app.get("/api/status")
