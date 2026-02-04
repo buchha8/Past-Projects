@@ -1,0 +1,24 @@
+[Unit]
+Description=%PROJECT_NAME% Web Server
+After=network.target
+
+[Service]
+Type=simple
+User=%iUSER%
+Group=%iGROUP%
+WorkingDirectory=%DEPLOY_DIR%
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=%VENV_DIR%/bin/python -m uvicorn main:app \
+  --host 0.0.0.0 \
+  --port 8443 \
+  --ssl-keyfile %KEY_FILE% \
+  --ssl-certfile %CERT_FILE%
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
