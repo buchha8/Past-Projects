@@ -3,18 +3,28 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import asyncio
 from pathlib import Path
-import configparser
 
-# -----------------------------
-# Load project configuration
-# -----------------------------
+# ----------------------------
+# Load project.conf
+# ----------------------------
 CONFIG_PATH = Path(__file__).parent / "project.conf"
-PROJECT_NAME = "unknown"
-if CONFIG_PATH.exists():
-    config = configparser.ConfigParser()
-    config.read(CONFIG_PATH)
-    PROJECT_NAME = config['DEFAULT'].get('PROJECT_NAME', 'unknown')
+config = {}
 
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, val = line.split("=", 1)
+        config[key] = val
+
+PROJECT_NAME = config["PROJECT_NAME"]
+DEPLOY_DIR = config["DEPLOY_DIR"]
+VENV_DIR = config["VENV_DIR"]
+
+# ----------------------------
+# FastAPI app setup
+# ----------------------------
 app = FastAPI(title=f"{PROJECT_NAME} Control")
 
 # Mount static folder
