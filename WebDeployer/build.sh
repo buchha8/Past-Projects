@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build/deploy script for Innovation server
+# Build/deploy script for deployed server
 # Fully user-agnostic, uses separate systemd service file
 
 set -e  # Exit on first error
@@ -93,14 +93,16 @@ fi
 
 echo "Installing systemd service..."
 sudo sed \
-    -e "s|%iUSER%|$USER|g" \
-    -e "s|%iGROUP%|$GROUP|g" \
+    -e "s|%USER%|$USER|g" \
+    -e "s|%GROUP%|$GROUP|g" \
     -e "s|%PROJECT_NAME%|$PROJECT_NAME|g" \
     -e "s|%DEPLOY_DIR%|$DEPLOY_DIR|g" \
     -e "s|%VENV_DIR%|$VENV_DIR|g" \
     -e "s|%KEY_FILE%|$KEY_FILE|g" \
     -e "s|%CERT_FILE%|$CERT_FILE|g" \
     "$DEV_SERVICE" | sudo tee "$SYSTEMD_SERVICE" > /dev/null
+
+sudo sed "s|%PROJECT_NAME%|$PROJECT_NAME|g" "$DEPLOY_DIR/dashboard.html"
 
 # -----------------------------
 # 8. Enable and start service

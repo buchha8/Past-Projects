@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=%iUSER%
-Group=%iGROUP%
+User=%USER%
+Group=%GROUP%
 WorkingDirectory=%DEPLOY_DIR%
 Environment="PYTHONUNBUFFERED=1"
 ExecStart=%VENV_DIR%/bin/python -m uvicorn main:app \

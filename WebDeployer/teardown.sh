@@ -1,5 +1,5 @@
 #!/bin/bash
-# Tear-down script for Innovation server
+# Tear-down script for deployed server
 # Stops the service, removes deployment files, and cleans up systemd unit
 
 set -e
