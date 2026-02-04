@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build/deploy script for Innovation Robot server
+# Build/deploy script for Innovation server
 # Fully user-agnostic, uses separate systemd service file
 
 set -e  # Exit on first error
@@ -13,16 +13,41 @@ DEPLOY_DIR="/opt/innovation"
 VENV_DIR="$DEPLOY_DIR/venv"
 DEV_SERVICE="$DEV_DIR/innovation.service"
 SYSTEMD_SERVICE="/etc/systemd/system/innovation.service"
+CERT_DIR="$DEPLOY_DIR/certs"
+KEY_FILE="$CERT_DIR/server.key"
+CERT_FILE="$CERT_DIR/server.crt"
+
+
 
 # Automatically detect current user and primary group
 USER=$(whoami)
 GROUP=$(id -gn)
 
+echo "Ensuring TLS certificates exist..."
+
+sudo mkdir -p "$CERT_DIR"
+sudo chown -R $USER:$GROUP "$CERT_DIR"
+sudo chmod 750 "$CERT_DIR"
+
+if [ ! -f "$KEY_FILE" ] || [ ! -f "$CERT_FILE" ]; then
+    echo "Generating self-signed TLS certificate..."
+
+    openssl req -x509 -newkey rsa:4096 \
+        -keyout "$KEY_FILE" \
+        -out "$CERT_FILE" \
+        -days 365 \
+        -nodes \
+        -subj "/CN=innovation"
+
+    chmod 640 "$KEY_FILE" "$CERT_FILE"
+else
+    echo "TLS certificates already exist; skipping generation."
+fi
+
 # -----------------------------
 # 1. Ensure prerequisites
 # -----------------------------
 echo "Installing system dependencies..."
-sudo apt update
 sudo apt install -y python3-venv python3-pip python3-full rsync
 
 # -----------------------------
