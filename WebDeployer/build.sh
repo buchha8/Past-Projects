@@ -102,7 +102,7 @@ sudo sed \
     -e "s|%CERT_FILE%|$CERT_FILE|g" \
     "$DEV_SERVICE" | sudo tee "$SYSTEMD_SERVICE" > /dev/null
 
-sudo sed "s|%PROJECT_NAME%|$PROJECT_NAME|g" \
+sudo sed -i "s|%PROJECT_NAME%|$PROJECT_NAME|g" \
     "$DEPLOY_DIR/dashboard.html" | sudo tee "$DEPLOY_DIR/dashboard.html" > /dev/null
 
 # -----------------------------
