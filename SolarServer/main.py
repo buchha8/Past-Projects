@@ -2,11 +2,31 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import asyncio
+import uvicorn
 from pathlib import Path
-import signal
-import sys
 
-app = FastAPI(title="Innovation Control")
+# ----------------------------
+# Load project.conf
+# ----------------------------
+CONFIG_PATH = Path(__file__).parent / "project.conf"
+config = {}
+
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, val = line.split("=", 1)
+        config[key] = val
+
+PROJECT_NAME = config["PROJECT_NAME"]
+DEPLOY_DIR = config["DEPLOY_DIR"]
+VENV_DIR = config["VENV_DIR"]
+
+# ----------------------------
+# FastAPI app setup
+# ----------------------------
+app = FastAPI(title=f"{PROJECT_NAME} Control")
 
 # Mount static folder
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -20,21 +40,19 @@ HTML_FILE = Path(__file__).parent / "dashboard.html"
 
 @app.on_event("startup")
 async def startup():
-    print("Innovation server starting up")
+    print(f"{PROJECT_NAME} server starting up")
     # TODO:
     # - initialize MCU connection
     # - start telemetry tasks
     # - check battery / safety state
 
-
 @app.on_event("shutdown")
 async def shutdown():
-    print("Innovation server shutting down")
+    print(f"{PROJECT_NAME} server shutting down")
     # TODO:
     # - stop motors
     # - notify MCU
     # - flush logs
-
 
 # ----------------------------
 # Routes
@@ -42,10 +60,8 @@ async def shutdown():
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    # Read HTML file and return as response
     html_content = HTML_FILE.read_text(encoding="utf-8")
     return HTMLResponse(content=html_content)
-
 
 @app.get("/api/status")
 async def status():
@@ -55,12 +71,10 @@ async def status():
         "battery": "unknown",
     }
 
-
 @app.post("/api/motors/stop")
 async def stop_motors():
     # TODO: send stop command to MCU
     return {"result": "motors stopped"}
-
 
 # ----------------------------
 # Optional: background task example
@@ -70,7 +84,6 @@ async def telemetry_loop():
     while True:
         # TODO: poll MCU, sensors, etc.
         await asyncio.sleep(1)
-
 
 @app.on_event("startup")
 async def start_background_tasks():

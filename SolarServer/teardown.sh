@@ -1,15 +1,19 @@
 #!/bin/bash
-# Tear-down script for Innovation server
+# Tear-down script for deployed server
 # Stops the service, removes deployment files, and cleans up systemd unit
 
 set -e
 set -u
 
 # -----------------------------
-# 0. Configuration
+# 0. Load project configuration
 # -----------------------------
-DEPLOY_DIR="/opt/innovation"
-SYSTEMD_SERVICE="/etc/systemd/system/innovation.service"
+CONFIG_FILE="$(dirname "${BASH_SOURCE[0]}")/project.conf"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Config file $CONFIG_FILE not found!"
+    exit 1
+fi
+source "$CONFIG_FILE"
 
 # Automatically detect current user and group
 USER=$(whoami)
@@ -18,11 +22,11 @@ GROUP=$(id -gn)
 # -----------------------------
 # 1. Stop service
 # -----------------------------
-if systemctl is-active --quiet innovation.service; then
-    echo "Stopping innovation.service..."
-    sudo systemctl stop innovation.service
+if systemctl is-active --quiet "$PROJECT_NAME.service"; then
+    echo "Stopping $PROJECT_NAME.service..."
+    sudo systemctl stop "$PROJECT_NAME.service"
 else
-    echo "innovation.service is not running."
+    echo "$PROJECT_NAME.service is not running."
 fi
 
 # -----------------------------

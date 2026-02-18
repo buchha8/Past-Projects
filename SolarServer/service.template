@@ -1,18 +1,18 @@
 [Unit]
-Description=Innovation Web Server
+Description=%PROJECT_NAME% Web Server
 After=network.target
 
 [Service]
 Type=simple
-User=%iUSER%
-Group=%iGROUP%
-WorkingDirectory=/opt/innovation
+User=%USER%
+Group=%GROUP%
+WorkingDirectory=%DEPLOY_DIR%
 Environment="PYTHONUNBUFFERED=1"
-ExecStart=/opt/innovation/venv/bin/python -m uvicorn main:app \
+ExecStart=%VENV_DIR%/bin/python -m uvicorn main:app \
   --host 0.0.0.0 \
   --port 8443 \
-  --ssl-keyfile /opt/innovation/certs/server.key \
-  --ssl-certfile /opt/innovation/certs/server.crt
+  --ssl-keyfile %KEY_FILE% \
+  --ssl-certfile %CERT_FILE%
 Restart=on-failure
 RestartSec=2
 NoNewPrivileges=true
