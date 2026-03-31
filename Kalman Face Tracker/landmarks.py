@@ -5,10 +5,12 @@ import numpy as np
 # ---------------------------
 # Load face detector and facemark
 # ---------------------------
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+dnn_model = cv2.dnn.readNetFromCaffe(
+    "deploy.prototxt",           # Caffe deploy file
+    "res10_300x300_ssd_iter_140000.caffemodel"  # pretrained weights
+)
 facemark = cv2.face.createFacemarkLBF()
-facemark.loadModel("lbfmodel.yaml")  # download from OpenCV contrib GitHub
-
+facemark.loadModel("lbfmodel.yaml")
 # ---------------------------
 # Kalman filter per landmark
 # ---------------------------
@@ -115,24 +117,27 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
-    
-    # Read slider values
-    q_exp = cv2.getTrackbarPos("Q exp", "Kalman Controls")
-    r_exp = cv2.getTrackbarPos("R exp", "Kalman Controls")
-    set_kalman_noise(kalman, q_exp, r_exp)
+    h, w = frame.shape[:2]
 
     # Face Detection
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.3, 
-        minNeighbors=5, 
-        minSize=(60, 60)     # prevents tiny false positives
-    )
+    blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300),
+                                 (104.0, 177.0, 123.0))  # mean subtraction
+    dnn_model.setInput(blob)
+    detections = dnn_model.forward()
+
+    faces = []
+    for i in range(detections.shape[2]):
+        confidence = detections[0, 0, i, 2]
+        if confidence > 0.6:  # adjust threshold as needed
+            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+            (x1, y1, x2, y2) = box.astype(int)
+            faces.append((x1, y1, x2 - x1, y2 - y1))
+    faces = np.array(faces, dtype=np.int32)  # required for facemark.fit
 
     # Landmark Detection 
     lm_np = None
     if len(faces) > 0:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # grayscale required for LBF
         ok, landmarks_list = facemark.fit(gray, faces)
         if ok:
             lm_np = landmarks_to_numpy(landmarks_list[0:1])  # first face only
@@ -155,6 +160,10 @@ while True:
         cv2.imshow("Normalized Landmarks (Raw)", norm_canvas)
 
     # Draw normalized landmarks (Kalman)
+    # Read slider values
+    q_exp = cv2.getTrackbarPos("Q exp", "Kalman Controls")
+    r_exp = cv2.getTrackbarPos("R exp", "Kalman Controls")
+    set_kalman_noise(kalman, q_exp, r_exp)
     # Kalman smoothing
     smoothed_lm = kalman.update(lm_np)
     if smoothed_lm is not None:
