@@ -1,6 +1,3 @@
 opencv-contrib-python
 mediapipe
 numpy
-scikit-learn
-pyautogui
-matplotlib
