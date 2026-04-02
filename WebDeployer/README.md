@@ -1,5 +1,5 @@
 # WebDeployer
-Framework for instantly deploying web servers on arbitary Linux devices. These files are intended to be a baseline for developing any project that requires a webserver. The repository contains scripts for building servers, tearing down servers, customizable config files, a template for Python webhooks server-side, and templates for HTML, JavaScript, and CSS on the client-side. 
+Framework for instantly deploying web servers on arbitrary Linux devices. These files are intended to be a baseline for developing any project that requires a webserver. The repository contains scripts for building servers, tearing down servers, customizable config files, a template for Python webhooks server-side, and templates for HTML, JavaScript, and CSS on the client-side. 
 
 ### How to use
 Clone this repository, edit the templates as needed, and run `bash build.sh` to deploy a new webserver. Re-running `bash build.sh` will overwrite/rebuild the server. Run `bash teardown.sh` to delete the server.
