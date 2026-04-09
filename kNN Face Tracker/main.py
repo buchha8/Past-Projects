@@ -1,44 +1,58 @@
+import sys
 import cv2
 import landmarks
 import ui
-
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
 
 def main():
+    # ---- Qt application ----
+    app = QApplication(sys.argv)
+    main_window, ui_state = ui.create_ui()  # create UI and return state dict
+
+    # ---- OpenCV capture and landmarker ----
     cap = cv2.VideoCapture(0)
     landmarker = landmarks.create_landmarker()
 
-    while cap.isOpened():
+    # ---- Frame update function ----
+    def update_frame():
+        if not main_window.isVisible():  # stop when window closed
+            cap.release()
+            app.quit()
+            return
+
         ret, frame = cap.read()
         if not ret:
-            break
+            return
 
         timestamp_ms = int(cap.get(cv2.CAP_PROP_POS_MSEC))
-
-        # ---- Pipeline ----
         results = landmarks.detect_face_data(frame, landmarker, timestamp_ms)
+
+        # ---- Landmarks and pose ----
         landmarks_pixels = landmarks.get_landmarks_pixels(results, frame)
         transform_matrix = landmarks.get_transform_matrix(results)
-        blendshape_vector = landmarks.get_blendshape_vector(results)
         roll, pitch, yaw = landmarks.get_head_pose_angles(transform_matrix)
         landmarks_centered = landmarks.get_landmarks_centered(landmarks_pixels)
         landmarks_normalized = landmarks.get_landmarks_normalized(landmarks_pixels, landmarks_centered)
         landmarks_display = landmarks.get_landmarks_display(landmarks_normalized)
-        # if transform_matrix is not None:
-            # print(f"Roll: {roll:.2f}, Pitch: {pitch:.2f}, Yaw: {yaw:.2f}")
-        # if blendshape_vector is not None:
-            # print(f"Blendshapes: {blendshape_vector}")
 
-        # ---- UI ----
-        frame = ui.draw_landmarks_on_frame(frame, landmarks_pixels)
-        norm_display = ui.draw_normalized_window(landmarks_display)
-        ui.show(frame, norm_display)
+        # ---- Blendshapes (for gestures) ----
+        blendshape_vector = landmarks.get_blendshape_vector(results)
 
-        if cv2.waitKey(1) == 27:
-            break
+        # ---- Update UI ----
+        ui.update_landmarks_display(ui_state, landmarks_display)
+        ui.update_head_angles(ui_state, roll, pitch, yaw)
+        # ui.update_blendshapes(ui_state, blendshape_vector)
 
-    cap.release()
-    cv2.destroyAllWindows()
+        # Future: handle mouse actions / keybinds here
 
+    # ---- QTimer for event-driven updates ----
+    timer = QTimer()
+    timer.timeout.connect(update_frame)
+    timer.start(30)  # ~33 FPS
+
+    # ---- Start Qt event loop ----
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()
