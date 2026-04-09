@@ -23,26 +23,47 @@ def create_landmarker(model_path="face_landmarker.task"):
 
 
 # ---- Core processing ----
-def detect_face_landmarks(frame, landmarker, timestamp_ms):
+def detect_face_data(frame, landmarker, timestamp_ms):
+    """
+    Returns raw Mediapipe results object only.
+    """
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     mp_image = Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-
     results = landmarker.detect_for_video(mp_image, timestamp_ms)
+    return results
 
+
+def get_landmarks_pixels(results, frame):
     if not results.face_landmarks:
         return None
+    face = results.face_landmarks[0]
+    return np.array([[p.x * frame.shape[1], p.y * frame.shape[0], p.z * frame.shape[1]] for p in face], dtype=np.float32)
 
-    return results.face_landmarks[0]
 
-
-def get_landmarks_pixels(face_landmarks, frame):
-    if face_landmarks is None:
+def get_transform_matrix(results):
+    if not results.facial_transformation_matrixes:
         return None
+    return np.array(results.facial_transformation_matrixes[0]).reshape(4,4)
 
-    return np.array([
-        [p.x * frame.shape[1], p.y * frame.shape[0], p.z * frame.shape[1]]
-        for p in face_landmarks
-    ], dtype=np.float32)
+
+def get_blendshape_vector(results):
+    if not results.face_blendshapes:
+        return None
+    blendshapes = results.face_blendshapes[0]
+    return np.array([b.score for b in blendshapes], dtype=np.float32)
+
+
+def get_head_pose_angles(transform_matrix):
+    if transform_matrix is None:
+        return None, None, None
+
+    R = transform_matrix[:3,:3]
+
+    yaw = -2*np.arctan2(-R[2,0], np.sqrt(R[2,1]**2 + R[2,2]**2))  # turn
+    roll   = np.arctan2(R[1,0], R[0,0])                            # tilt
+    pitch  = -2*np.arctan2(R[2,1], R[2,2])                            # nod
+
+    return np.degrees(roll), np.degrees(pitch), np.degrees(yaw)
 
 
 def get_landmarks_centered(landmarks_pixels):
@@ -77,4 +98,10 @@ def get_landmarks_display(landmarks_normalized, display_size=400):
     half_size = display_size // 2
     scale = half_size * 0.9
 
-    return (landmarks_normalized * scale) + half_size
+    # scale and shift
+    landmarks_display = (landmarks_normalized * scale) + half_size
+
+    # flip left/right by inverting X coordinates
+    landmarks_display[:, 0] = display_size - landmarks_display[:, 0]
+
+    return landmarks_display

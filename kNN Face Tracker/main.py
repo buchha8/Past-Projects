@@ -15,14 +15,18 @@ def main():
         timestamp_ms = int(cap.get(cv2.CAP_PROP_POS_MSEC))
 
         # ---- Pipeline ----
-        face = landmarks.detect_face_landmarks(frame, landmarker, timestamp_ms)
-
-        landmarks_pixels = landmarks.get_landmarks_pixels(face, frame)
+        results = landmarks.detect_face_data(frame, landmarker, timestamp_ms)
+        landmarks_pixels = landmarks.get_landmarks_pixels(results, frame)
+        transform_matrix = landmarks.get_transform_matrix(results)
+        blendshape_vector = landmarks.get_blendshape_vector(results)
+        roll, pitch, yaw = landmarks.get_head_pose_angles(transform_matrix)
         landmarks_centered = landmarks.get_landmarks_centered(landmarks_pixels)
-        landmarks_normalized = landmarks.get_landmarks_normalized(
-            landmarks_pixels, landmarks_centered
-        )
+        landmarks_normalized = landmarks.get_landmarks_normalized(landmarks_pixels, landmarks_centered)
         landmarks_display = landmarks.get_landmarks_display(landmarks_normalized)
+        # if transform_matrix is not None:
+            # print(f"Roll: {roll:.2f}, Pitch: {pitch:.2f}, Yaw: {yaw:.2f}")
+        # if blendshape_vector is not None:
+            # print(f"Blendshapes: {blendshape_vector}")
 
         # ---- UI ----
         frame = ui.draw_landmarks_on_frame(frame, landmarks_pixels)
