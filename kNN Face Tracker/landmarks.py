@@ -33,27 +33,27 @@ def detect_face_data(frame, landmarker, timestamp_ms):
     return results
 
 
-def get_landmarks_pixels(results, frame):
+def extract_landmarks_pixels(results, frame):
     if not results.face_landmarks:
         return None
     face = results.face_landmarks[0]
     return np.array([[p.x * frame.shape[1], p.y * frame.shape[0], p.z * frame.shape[1]] for p in face], dtype=np.float32)
 
 
-def get_transform_matrix(results):
+def extract_transform_matrix(results):
     if not results.facial_transformation_matrixes:
         return None
     return np.array(results.facial_transformation_matrixes[0]).reshape(4,4)
 
 
-def get_blendshape_vector(results):
+def extract_blendshape_vector(results):
     if not results.face_blendshapes:
         return None
     blendshapes = results.face_blendshapes[0]
     return np.array([b.score for b in blendshapes], dtype=np.float32)
 
 
-def get_head_pose_angles(transform_matrix):
+def compute_head_pose_angles(transform_matrix):
     if transform_matrix is None:
         return None, None, None
 
@@ -66,7 +66,7 @@ def get_head_pose_angles(transform_matrix):
     return np.degrees(roll), np.degrees(pitch), np.degrees(yaw)
 
 
-def get_landmarks_centered(landmarks_pixels):
+def compute_landmarks_centered(landmarks_pixels):
     if landmarks_pixels is None:
         return None
 
@@ -75,7 +75,7 @@ def get_landmarks_centered(landmarks_pixels):
     return landmarks_pixels[:, :2] - center
 
 
-def get_landmarks_normalized(landmarks_pixels, landmarks_centered):
+def compute_landmarks_normalized(landmarks_pixels, landmarks_centered):
     if landmarks_pixels is None or landmarks_centered is None:
         return None
 
@@ -91,7 +91,7 @@ def get_landmarks_normalized(landmarks_pixels, landmarks_centered):
     return landmarks_centered / eye_dist
 
 
-def get_landmarks_display(landmarks_normalized, display_size=200):
+def compute_landmarks_display(landmarks_normalized, display_size=200):
     if landmarks_normalized is None:
         return None
 

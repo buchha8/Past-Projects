@@ -1,17 +1,18 @@
 import sys
 import cv2
 import landmarks
-import state
+import app_state
 import ui
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 
 def main():
-    state.load_state()  # Load saved keybinds and settings
+    state_manager = app_state.AppStateManager()
+    state_manager.load_state()  # Load saved keybinds and settings
 
     # ---- Qt application ----
     app = QApplication(sys.argv)
-    main_window, ui_state = ui.create_ui()  # create UI and return state dict
+    main_window, ui_state = ui.create_ui(state_manager)  # create UI and return state dict
 
     # ---- OpenCV capture and landmarker ----
     cap = cv2.VideoCapture(0)
@@ -32,15 +33,15 @@ def main():
         results = landmarks.detect_face_data(frame, landmarker, timestamp_ms)
 
         # ---- Landmarks and pose ----
-        landmarks_pixels = landmarks.get_landmarks_pixels(results, frame)
-        transform_matrix = landmarks.get_transform_matrix(results)
-        roll, pitch, yaw = landmarks.get_head_pose_angles(transform_matrix)
-        landmarks_centered = landmarks.get_landmarks_centered(landmarks_pixels)
-        landmarks_normalized = landmarks.get_landmarks_normalized(landmarks_pixels, landmarks_centered)
-        landmarks_display = landmarks.get_landmarks_display(landmarks_normalized)
+        landmarks_pixels = landmarks.extract_landmarks_pixels(results, frame)
+        transform_matrix = landmarks.extract_transform_matrix(results)
+        roll, pitch, yaw = landmarks.compute_head_pose_angles(transform_matrix)
+        landmarks_centered = landmarks.compute_landmarks_centered(landmarks_pixels)
+        landmarks_normalized = landmarks.compute_landmarks_normalized(landmarks_pixels, landmarks_centered)
+        landmarks_display = landmarks.compute_landmarks_display(landmarks_normalized)
 
         # ---- Blendshapes (for gestures) ----
-        blendshape_vector = landmarks.get_blendshape_vector(results)
+        blendshape_vector = landmarks.extract_blendshape_vector(results)
         # print("Face Blendshapes:", results.face_blendshapes)  # Debug print, can be removed later
         # print("Blendshapes:", blendshape_vector)  # Debug print, can be removed later
 
