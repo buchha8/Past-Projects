@@ -1,15 +1,15 @@
 class KeybindManager:
-    def __init__(self, app_state_manager):
-        self.app_state_manager = app_state_manager
+    def __init__(self, config_manager):
+        self.config_manager = config_manager
 
     # -------------------------
     # Internal helpers
     # -------------------------
     def _get_keybinds(self):
-        return self.app_state_manager.get_state().get("keybinds", [])
+        return self.config_manager.get_config().get("keybinds", [])
 
     def _set_keybinds(self, keybinds):
-        data = self.app_state_manager.get_state()
+        data = self.config_manager.get_config()
         data["keybinds"] = keybinds
 
     # -------------------------

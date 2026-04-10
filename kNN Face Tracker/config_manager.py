@@ -1,14 +1,14 @@
 import json
 import os
 
-STATE_FILE = "app_state.json"
+config_FILE = "config.json"
 
 
-class AppStateManager:
+class ConfigManager:
     def __init__(self):
         self._data = {}
 
-        self.DEFAULT_STATE = {
+        self.DEFAULT_CONFIG = {
             "enabled": True,
             "mouse_speed": 1.0,
             "keybinds": [
@@ -21,24 +21,24 @@ class AppStateManager:
             ]
         }
 
-    def load_state(self):
-        if not os.path.exists(STATE_FILE):
-            self._data = self.DEFAULT_STATE.copy()
+    def load_config(self):
+        if not os.path.exists(config_FILE):
+            self._data = self.DEFAULT_CONFIG.copy()
             return
 
         try:
-            with open(STATE_FILE, "r") as f:
+            with open(config_FILE, "r") as f:
                 self._data = json.load(f)
         except:
-            self._data = self.DEFAULT_STATE.copy()
+            self._data = self.DEFAULT_CONFIG.copy()
 
         self._normalize()
 
-    def save_state(self):
-        with open(STATE_FILE, "w") as f:
+    def save_config(self):
+        with open(config_FILE, "w") as f:
             json.dump(self._data, f, indent=4)
 
-    def add_state(self, key):
+    def add_config(self, key):
         self._data["keybinds"].append({
             "key": key,
             "gesture": None,
@@ -46,16 +46,16 @@ class AppStateManager:
             "locked": False
         })
 
-    def delete_state(self, index):
+    def delete_config(self, index):
         if 0 <= index < len(self._data.get("keybinds", [])):
             self._data["keybinds"].pop(index)
 
-    def get_state(self):
+    def get_config(self):
         return self._data
 
     def _normalize(self):
         if "keybinds" not in self._data:
-            self._data["keybinds"] = self.DEFAULT_STATE["keybinds"]
+            self._data["keybinds"] = self.DEFAULT_CONFIG["keybinds"]
 
         if not isinstance(self._data["keybinds"], list):
-            self._data["keybinds"] = self.DEFAULT_STATE["keybinds"]
+            self._data["keybinds"] = self.DEFAULT_CONFIG["keybinds"]

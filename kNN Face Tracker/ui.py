@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 import numpy as np
 
 
-def create_ui(app_state_manager, keybind_manager):
+def create_ui(config_manager, keybind_manager):
     """
     Create the main UI window and return a tuple:
     (main_window, ui_state_dict)
@@ -49,7 +49,7 @@ def create_ui(app_state_manager, keybind_manager):
     main_layout.addWidget(keybind_table)
     ui_state['keybind_table'] = keybind_table
 
-    refresh_table(ui_state, app_state_manager)
+    refresh_table(ui_state, config_manager)
 
     # ---- Buttons ----
     button_layout = QHBoxLayout()
@@ -165,8 +165,8 @@ def add_keybind(ui_state, keybind_manager, main_window):
     except ValueError:
         return
 
-    keybind_manager.app_state_manager.save_state()
-    refresh_table(ui_state, keybind_manager.app_state_manager)
+    keybind_manager.config_manager.save_config()
+    refresh_table(ui_state, keybind_manager.config_manager)
 
 
 def delete_keybind(ui_state, keybind_manager):
@@ -178,13 +178,13 @@ def delete_keybind(ui_state, keybind_manager):
 
     keybind_manager.delete_keybind(row)
 
-    keybind_manager.app_state_manager.save_state()
-    refresh_table(ui_state, keybind_manager.app_state_manager)
+    keybind_manager.config_manager.save_config()
+    refresh_table(ui_state, keybind_manager.config_manager)
 
 
-def refresh_table(ui_state, app_state_manager):
+def refresh_table(ui_state, config_manager):
     table = ui_state['keybind_table']
-    keybinds = app_state_manager.get_state().get("keybinds", [])
+    keybinds = config_manager.get_config().get("keybinds", [])
 
     table.setRowCount(0)
 

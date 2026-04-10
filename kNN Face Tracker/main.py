@@ -1,15 +1,15 @@
 import sys
 import cv2
 import landmarks
-import app_state_manager
+import config_manager
 import keybind_manager
 import ui
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 
 def main():
-    as_manager = app_state_manager.AppStateManager()
-    as_manager.load_state()  # Load saved keybinds and settings
+    as_manager = config_manager.ConfigManager()
+    as_manager.load_config()  # Load saved keybinds and settings
 
     kb_manager = keybind_manager.KeybindManager(as_manager)
     
