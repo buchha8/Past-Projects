@@ -1,11 +1,14 @@
 import sys
 import cv2
 import landmarks
+import state
 import ui
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 
 def main():
+    state.load_state()  # Load saved keybinds and settings
+
     # ---- Qt application ----
     app = QApplication(sys.argv)
     main_window, ui_state = ui.create_ui()  # create UI and return state dict
@@ -38,6 +41,8 @@ def main():
 
         # ---- Blendshapes (for gestures) ----
         blendshape_vector = landmarks.get_blendshape_vector(results)
+        # print("Face Blendshapes:", results.face_blendshapes)  # Debug print, can be removed later
+        # print("Blendshapes:", blendshape_vector)  # Debug print, can be removed later
 
         # ---- Update UI ----
         ui.update_landmarks_display(ui_state, landmarks_display)

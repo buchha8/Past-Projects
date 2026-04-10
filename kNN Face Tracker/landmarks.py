@@ -91,7 +91,7 @@ def get_landmarks_normalized(landmarks_pixels, landmarks_centered):
     return landmarks_centered / eye_dist
 
 
-def get_landmarks_display(landmarks_normalized, display_size=400):
+def get_landmarks_display(landmarks_normalized, display_size=200):
     if landmarks_normalized is None:
         return None
 
