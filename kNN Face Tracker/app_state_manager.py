@@ -15,7 +15,8 @@ class AppStateManager:
                 {
                     "key": "Toggle",
                     "gesture": None,
-                    "sensitivity": 1.0
+                    "sensitivity": 1.0,
+                    "locked": True  # prevent deletion of this default entry
                 }
             ]
         }
@@ -41,7 +42,8 @@ class AppStateManager:
         self.state["keybinds"].append({
             "key": key,
             "gesture": None,
-            "sensitivity": 1.0
+            "sensitivity": 1.0,
+            "locked": False
         })
 
     def delete_state(self, index):

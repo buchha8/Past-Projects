@@ -1,18 +1,21 @@
 import sys
 import cv2
 import landmarks
-import app_state
+import app_state_manager
+import keybind_manager
 import ui
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 
 def main():
-    state_manager = app_state.AppStateManager()
+    state_manager = app_state_manager.AppStateManager()
     state_manager.load_state()  # Load saved keybinds and settings
+
+    kb_manager = keybind_manager.KeybindManager(state_manager)
 
     # ---- Qt application ----
     app = QApplication(sys.argv)
-    main_window, ui_state = ui.create_ui(state_manager)  # create UI and return state dict
+    main_window, ui_state = ui.create_ui(state_manager, kb_manager)  # create UI and return state dict
 
     # ---- OpenCV capture and landmarker ----
     cap = cv2.VideoCapture(0)

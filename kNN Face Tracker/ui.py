@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 import numpy as np
 
 
-def create_ui(state_manager):
+def create_ui(state_manager, keybind_manager):
     """
     Create the main UI window and return a tuple:
     (main_window, ui_state_dict)
@@ -71,8 +71,8 @@ def create_ui(state_manager):
     ui_state['calibrate_button'] = calibrate_button
 
     # FIXED: state passed explicitly
-    add_button.clicked.connect(lambda: add_keybind(ui_state, state_manager, main_window))
-    delete_button.clicked.connect(lambda: delete_keybind(ui_state, state_manager))
+    add_button.clicked.connect(lambda: add_keybind(ui_state, keybind_manager, main_window))
+    delete_button.clicked.connect(lambda: delete_keybind(ui_state, keybind_manager))
 
     # ---- Mouse speed slider ----
     mouse_speed_slider = QSlider()
@@ -155,28 +155,31 @@ def open_input_capture_dialog(parent=None):
 # STATE-INTEGRATED FUNCTIONS
 # ----------------------------
 
-def add_keybind(ui_state, state_manager, main_window):
+def add_keybind(ui_state, keybind_manager, main_window):
     key = open_input_capture_dialog(main_window)
     if key is None:
         return
 
-    state_manager.add_state(key)
-    state_manager.save_state()
+    try:
+        keybind_manager.add_keybind(key)
+    except ValueError:
+        return
 
-    refresh_table(ui_state, state_manager)
+    keybind_manager.state.save_state()
+    refresh_table(ui_state, keybind_manager.state)
 
 
-def delete_keybind(ui_state, state_manager):
+def delete_keybind(ui_state, keybind_manager):
     table = ui_state['keybind_table']
 
     row = table.currentRow()
     if row < 0:
         return
 
-    state_manager.delete_state(row)
-    state_manager.save_state()
+    keybind_manager.delete_keybind(row)
 
-    refresh_table(ui_state, state_manager)
+    keybind_manager.state.save_state()
+    refresh_table(ui_state, keybind_manager.state)
 
 
 def refresh_table(ui_state, state_manager):

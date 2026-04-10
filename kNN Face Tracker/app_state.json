@@ -1,0 +1,12 @@
+{
+    "enabled": true,
+    "mouse_speed": 1.0,
+    "keybinds": [
+        {
+            "key": "Toggle",
+            "gesture": null,
+            "sensitivity": 1.0,
+            "locked": true
+        }
+    ]
+}
