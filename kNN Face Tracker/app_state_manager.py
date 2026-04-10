@@ -6,7 +6,7 @@ STATE_FILE = "app_state.json"
 
 class AppStateManager:
     def __init__(self):
-        self.state = {}
+        self._data = {}
 
         self.DEFAULT_STATE = {
             "enabled": True,
@@ -16,30 +16,30 @@ class AppStateManager:
                     "key": "Toggle",
                     "gesture": None,
                     "sensitivity": 1.0,
-                    "locked": True  # prevent deletion of this default entry
+                    "locked": True
                 }
             ]
         }
 
     def load_state(self):
         if not os.path.exists(STATE_FILE):
-            self.state = self.DEFAULT_STATE.copy()
+            self._data = self.DEFAULT_STATE.copy()
             return
 
         try:
             with open(STATE_FILE, "r") as f:
-                self.state = json.load(f)
+                self._data = json.load(f)
         except:
-            self.state = self.DEFAULT_STATE.copy()
+            self._data = self.DEFAULT_STATE.copy()
 
         self._normalize()
 
     def save_state(self):
         with open(STATE_FILE, "w") as f:
-            json.dump(self.state, f, indent=4)
+            json.dump(self._data, f, indent=4)
 
     def add_state(self, key):
-        self.state["keybinds"].append({
+        self._data["keybinds"].append({
             "key": key,
             "gesture": None,
             "sensitivity": 1.0,
@@ -47,15 +47,15 @@ class AppStateManager:
         })
 
     def delete_state(self, index):
-        if 0 <= index < len(self.state.get("keybinds", [])):
-            self.state["keybinds"].pop(index)
+        if 0 <= index < len(self._data.get("keybinds", [])):
+            self._data["keybinds"].pop(index)
 
     def get_state(self):
-        return self.state
+        return self._data
 
     def _normalize(self):
-        if "keybinds" not in self.state:
-            self.state["keybinds"] = self.DEFAULT_STATE["keybinds"]
+        if "keybinds" not in self._data:
+            self._data["keybinds"] = self.DEFAULT_STATE["keybinds"]
 
-        if not isinstance(self.state["keybinds"], list):
-            self.state["keybinds"] = self.DEFAULT_STATE["keybinds"]
+        if not isinstance(self._data["keybinds"], list):
+            self._data["keybinds"] = self.DEFAULT_STATE["keybinds"]
