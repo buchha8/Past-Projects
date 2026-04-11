@@ -1,6 +1,7 @@
 import cv2
 import landmarks
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, QTimer
+from PySide6.QtWidgets import QApplication
 
 
 class AppOrchestrator(QObject):
@@ -31,6 +32,7 @@ class AppOrchestrator(QObject):
         self.window.edit_gesture_requested.connect(self.on_edit_gesture)
         self.window.calibrate_requested.connect(self.on_calibrate)
         self.window.mouse_speed_changed.connect(self.on_mouse_speed_changed)
+        self.window.closed.connect(self.shutdown)
         
         # -------------------------
         # INITIAL UI SYNC
@@ -38,15 +40,16 @@ class AppOrchestrator(QObject):
         self.window.update_table(self.keybinds.get_keybinds())
         self.window.mouse_speed_slider.setValue(int(self.config.get_mouse_speed() * 10))
 
+        # ---- Timer ----
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.on_frame)
+        self.timer.start(30)
+
 
     # -------------------------
     # FRAME LOOP ENTRY POINT
     # -------------------------
     def on_frame(self):
-        if not self.window.isVisible():
-            self.shutdown()
-            return False
-
         ret, frame = self.cap.read()
         if not ret:
             return True
@@ -111,6 +114,9 @@ class AppOrchestrator(QObject):
     # LIFECYCLE
     # -------------------------
     def shutdown(self):
+        if self.timer.isActive():
+            self.timer.stop()
+
         if self.cap:
             self.cap.release()
             self.cap = None

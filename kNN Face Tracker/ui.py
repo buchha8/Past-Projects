@@ -17,6 +17,7 @@ class MainWindow(QWidget):
     edit_gesture_requested = Signal(int)
     calibrate_requested = Signal()
     mouse_speed_changed = Signal(float)
+    closed = Signal()
 
     def __init__(self):
         super().__init__()
@@ -185,3 +186,8 @@ class MainWindow(QWidget):
 
         dialog.exec()
         return captured["value"]
+    
+
+    def closeEvent(self, event):
+        self.closed.emit()
+        super().closeEvent(event)
