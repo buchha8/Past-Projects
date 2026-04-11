@@ -1,195 +1,187 @@
-# ui.py
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QSlider, QTableWidget, QTableWidgetItem
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QPushButton, QSlider, QTableWidget, QTableWidgetItem, QDialog
 )
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPixmap, QKeySequence
 import numpy as np
 
 
-def create_ui(config_manager, keybind_manager):
-    """
-    Create the main UI window and return a tuple:
-    (main_window, ui_state_dict)
-    """
+class MainWindow(QWidget):
 
-    ui_state = {}
+    # -------------------------
+    # SIGNALS (UI OUTPUT ONLY)
+    # -------------------------
+    add_keybind_requested = Signal(str)
+    delete_keybind_requested = Signal(int)
+    edit_gesture_requested = Signal(int)
+    calibrate_requested = Signal()
+    mouse_speed_changed = Signal(float)
 
-    main_window = QWidget()
-    main_window.setWindowTitle("Face Control")
-    main_layout = QVBoxLayout(main_window)
+    def __init__(self):
+        super().__init__()
 
-    # ---- Landmarks display ----
-    landmarks_label = QLabel()
-    landmarks_label.setFixedSize(200, 200)
-    main_layout.addWidget(landmarks_label, alignment=Qt.AlignHCenter)
-    ui_state['landmarks_label'] = landmarks_label
+        self.setWindowTitle("Face Control")
 
-    # ---- Roll/Pitch/Yaw labels ----
-    angles_layout = QHBoxLayout()
-    roll_label = QLabel("Roll: --")
-    pitch_label = QLabel("Pitch: --")
-    yaw_label = QLabel("Yaw: --")
-    angles_layout.addWidget(roll_label)
-    angles_layout.addWidget(pitch_label)
-    angles_layout.addWidget(yaw_label)
-    main_layout.addLayout(angles_layout)
+        layout = QVBoxLayout(self)
 
-    ui_state['roll_label'] = roll_label
-    ui_state['pitch_label'] = pitch_label
-    ui_state['yaw_label'] = yaw_label
+        # -------------------------
+        # LANDMARKS
+        # -------------------------
+        self.landmarks_label = QLabel()
+        self.landmarks_label.setFixedSize(200, 200)
+        layout.addWidget(self.landmarks_label, alignment=Qt.AlignCenter)
 
-    # ---- Keybind table ----
-    keybind_table = QTableWidget()
-    keybind_table.setColumnCount(3)
-    keybind_table.setHorizontalHeaderLabels(["Key", "Gesture", "Sensitivity"])
-    keybind_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        # -------------------------
+        # ANGLES
+        # -------------------------
+        angles = QHBoxLayout()
 
-    main_layout.addWidget(keybind_table)
-    ui_state['keybind_table'] = keybind_table
+        self.roll_label = QLabel("Roll: --")
+        self.pitch_label = QLabel("Pitch: --")
+        self.yaw_label = QLabel("Yaw: --")
 
-    refresh_table(ui_state, config_manager)
+        angles.addWidget(self.roll_label)
+        angles.addWidget(self.pitch_label)
+        angles.addWidget(self.yaw_label)
 
-    # ---- Buttons ----
-    button_layout = QHBoxLayout()
-    add_button = QPushButton("Add Keybind")
-    delete_button = QPushButton("Delete Keybind")
-    edit_button = QPushButton("Edit Gesture")
-    calibrate_button = QPushButton("Calibrate")
+        layout.addLayout(angles)
 
-    button_layout.addWidget(add_button)
-    button_layout.addWidget(delete_button)
-    button_layout.addWidget(edit_button)
-    button_layout.addWidget(calibrate_button)
+        # -------------------------
+        # TABLE
+        # -------------------------
+        self.table = QTableWidget()
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["Key", "Gesture", "Sensitivity"])
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
 
-    main_layout.addLayout(button_layout)
+        layout.addWidget(self.table)
 
-    ui_state['add_button'] = add_button
-    ui_state['delete_button'] = delete_button
-    ui_state['edit_button'] = edit_button
-    ui_state['calibrate_button'] = calibrate_button
+        # -------------------------
+        # BUTTONS
+        # -------------------------
+        btns = QHBoxLayout()
 
-    # FIXED: state passed explicitly
-    add_button.clicked.connect(lambda: add_keybind(ui_state, keybind_manager, main_window))
-    delete_button.clicked.connect(lambda: delete_keybind(ui_state, keybind_manager))
+        self.add_btn = QPushButton("Add Keybind")
+        self.del_btn = QPushButton("Delete Keybind")
+        self.edit_btn = QPushButton("Edit Gesture")
+        self.calibrate_btn = QPushButton("Calibrate")
 
-    # ---- Mouse speed slider ----
-    mouse_speed_slider = QSlider()
-    mouse_speed_slider.setOrientation(Qt.Horizontal)
-    main_layout.addWidget(QLabel("Mouse Speed"))
-    main_layout.addWidget(mouse_speed_slider)
+        btns.addWidget(self.add_btn)
+        btns.addWidget(self.del_btn)
+        btns.addWidget(self.edit_btn)
+        btns.addWidget(self.calibrate_btn)
 
-    ui_state['mouse_speed_slider'] = mouse_speed_slider
+        layout.addLayout(btns)
 
-    main_window.show()
-    return main_window, ui_state
+        # -------------------------
+        # MOUSE SPEED
+        # -------------------------
+        self.mouse_speed_slider = QSlider(Qt.Horizontal)
+        self.mouse_speed_slider.setMinimum(1)
+        self.mouse_speed_slider.setMaximum(50)
 
+        layout.addWidget(QLabel("Mouse Speed"))
+        layout.addWidget(self.mouse_speed_slider)
 
-def update_head_angles(ui_state, roll, pitch, yaw):
-    ui_state['roll_label'].setText(
-        f"Roll: {roll:.1f}°" if roll is not None else "Roll: --"
-    )
-    ui_state['pitch_label'].setText(
-        f"Pitch: {pitch:.1f}°" if pitch is not None else "Pitch: --"
-    )
-    ui_state['yaw_label'].setText(
-        f"Yaw: {yaw:.1f}°" if yaw is not None else "Yaw: --"
-    )
+        # -------------------------
+        # SIGNAL WIRING (UI INTERNAL ONLY)
+        # -------------------------
+        self.add_btn.clicked.connect(self._on_add_clicked)
+        self.del_btn.clicked.connect(self._on_delete_clicked)
+        self.mouse_speed_slider.valueChanged.connect(self._on_mouse_speed_changed)
+        self.edit_btn.clicked.connect(self._on_edit_gesture_clicked)
+        self.calibrate_btn.clicked.connect(self._on_calibrate_clicked)
+    
+    # -------------------------
+    # INTERNAL EVENT TRANSLATION
+    # -------------------------
+    def _on_add_clicked(self):
+        key = self._capture_input()
+        if key:
+            self.add_keybind_requested.emit(str(key))
 
-
-def update_landmarks_display(ui_state, landmarks_display):
-    label = ui_state['landmarks_label']
-    display_size = label.width()
-
-    img = np.zeros((display_size, display_size, 3), dtype=np.uint8)
-
-    if landmarks_display is not None:
-        for x, y in landmarks_display:
-            xi = int(np.clip(x, 0, display_size - 1))
-            yi = int(np.clip(y, 0, display_size - 1))
-            img[yi, xi] = [0, 255, 0]
-
-    qimg = QImage(
-        img.data,
-        display_size,
-        display_size,
-        3 * display_size,
-        QImage.Format_RGB888
-    )
-
-    label.setPixmap(QPixmap.fromImage(qimg))
+    def _on_delete_clicked(self):
+        row = self.table.currentRow()
+        if row >= 0:
+            self.delete_keybind_requested.emit(row)
 
 
-def open_input_capture_dialog(parent=None):
-    dialog = QDialog(parent)
-    dialog.setWindowTitle("Enter Input")
+    def _on_edit_gesture_clicked(self):
+        row = self.table.currentRow()
+        if row >= 0:
+            self.edit_gesture_requested.emit(row)
 
-    layout = QVBoxLayout(dialog)
-    label = QLabel("Enter Input")
-    layout.addWidget(label)
-
-    captured = {"value": None}
-
-    def keyPressEvent(event):
-        captured["value"] = event.text() or event.key()
-        dialog.accept()
-
-    def mousePressEvent(event):
-        button_map = {
-            Qt.LeftButton: "Mouse Left",
-            Qt.RightButton: "Mouse Right",
-            Qt.MiddleButton: "Mouse Middle"
-        }
-        captured["value"] = button_map.get(event.button(), "Mouse")
-        dialog.accept()
-
-    dialog.keyPressEvent = keyPressEvent
-    dialog.mousePressEvent = mousePressEvent
-
-    dialog.exec()
-    return captured["value"]
+    def _on_calibrate_clicked(self):
+        self.calibrate_requested.emit()
 
 
-# ----------------------------
-# STATE-INTEGRATED FUNCTIONS
-# ----------------------------
+    def _on_mouse_speed_changed(self, value):
+        self.mouse_speed_changed.emit(value / 10.0)
 
-def add_keybind(ui_state, keybind_manager, main_window):
-    key = open_input_capture_dialog(main_window)
-    if key is None:
-        return
+    # -------------------------
+    # RENDERING API (CALLED BY ORCHESTRATOR)
+    # -------------------------
+    def update_table(self, keybinds):
+        self.table.setRowCount(0)
+        for i, kb in enumerate(keybinds):
+            self.table.insertRow(i)
+            self.table.setItem(i, 0, QTableWidgetItem(str(kb["key"])))
+            self.table.setItem(i, 1, QTableWidgetItem(str(kb["gesture"])))
+            self.table.setItem(i, 2, QTableWidgetItem(str(kb["sensitivity"])))
 
-    try:
-        keybind_manager.add_keybind(key)
-    except ValueError:
-        return
+    def update_head_angles(self, roll, pitch, yaw):
+        self.roll_label.setText(f"Roll: {roll:.1f}°" if roll else "Roll: --")
+        self.pitch_label.setText(f"Pitch: {pitch:.1f}°" if pitch else "Pitch: --")
+        self.yaw_label.setText(f"Yaw: {yaw:.1f}°" if yaw else "Yaw: --")
 
-    keybind_manager.config_manager.save_config()
-    refresh_table(ui_state, keybind_manager.config_manager)
+    def update_landmarks(self, landmarks_display):
+        size = self.landmarks_label.width()
+        img = np.zeros((size, size, 3), dtype=np.uint8)
+
+        if landmarks_display is not None:
+            for x, y in landmarks_display:
+                xi = int(np.clip(x, 0, size - 1))
+                yi = int(np.clip(y, 0, size - 1))
+                img[yi, xi] = [0, 255, 0]
+
+        qimg = QImage(img.data, size, size, 3 * size, QImage.Format_RGB888)
+        self.landmarks_label.setPixmap(QPixmap.fromImage(qimg))
+
+    # -------------------------
+    # INPUT DIALOG
+    # -------------------------
+    def _capture_input(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Enter Input")
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("Press key or click mouse"))
+
+        captured = {"value": None}
 
 
-def delete_keybind(ui_state, keybind_manager):
-    table = ui_state['keybind_table']
+        def keyPressEvent(event):
+            key = event.key()
 
-    row = table.currentRow()
-    if row < 0:
-        return
+            key_str = QKeySequence(key).toString()
 
-    keybind_manager.delete_keybind(row)
+            if not key_str:
+                key_str = str(key)  # fallback (rare)
 
-    keybind_manager.config_manager.save_config()
-    refresh_table(ui_state, keybind_manager.config_manager)
+            captured["value"] = key_str
+            dialog.accept()
 
+        def mousePressEvent(event):
+            button_map = {
+                Qt.LeftButton: "Left Click",
+                Qt.RightButton: "Right Click",
+                Qt.MiddleButton: "Middle Click"
+            }
+            captured["value"] = button_map.get(event.button(), "Mouse")
+            dialog.accept()
 
-def refresh_table(ui_state, config_manager):
-    table = ui_state['keybind_table']
-    keybinds = config_manager.get_config().get("keybinds", [])
+        dialog.keyPressEvent = keyPressEvent
+        dialog.mousePressEvent = mousePressEvent
 
-    table.setRowCount(0)
-
-    for row, kb in enumerate(keybinds):
-        table.insertRow(row)
-        table.setItem(row, 0, QTableWidgetItem(str(kb["key"])))
-        table.setItem(row, 1, QTableWidgetItem(str(kb["gesture"])))
-        table.setItem(row, 2, QTableWidgetItem(str(kb["sensitivity"])))
+        dialog.exec()
+        return captured["value"]

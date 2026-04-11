@@ -1,16 +1,22 @@
 import json
 import os
+import copy
 
-config_FILE = "config.json"
+CONFIG_FILE = "config.json"
 
 
 class ConfigManager:
     def __init__(self):
-        self._data = {}
+        self.data = {}
 
         self.DEFAULT_CONFIG = {
-            "enabled": True,
             "mouse_speed": 1.0,
+            "calibration": {
+                "min_pitchyaw": None,
+                "max_pitch": None,
+                "min_yaw": None,
+                "max_yaw": None
+            },
             "keybinds": [
                 {
                     "key": "Toggle",
@@ -21,41 +27,83 @@ class ConfigManager:
             ]
         }
 
+
     def load_config(self):
-        if not os.path.exists(config_FILE):
-            self._data = self.DEFAULT_CONFIG.copy()
+        if not os.path.exists(CONFIG_FILE):
+            self.data = copy.deepcopy(self.DEFAULT_CONFIG)
             return
 
         try:
-            with open(config_FILE, "r") as f:
-                self._data = json.load(f)
+            with open(CONFIG_FILE, "r") as f:
+                self.data = json.load(f)
         except:
-            self._data = self.DEFAULT_CONFIG.copy()
+            self.data = copy.deepcopy(self.DEFAULT_CONFIG)
 
         self._normalize()
 
+
     def save_config(self):
-        with open(config_FILE, "w") as f:
-            json.dump(self._data, f, indent=4)
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(self.data, f, indent=4)
+
 
     def add_config(self, key):
-        self._data["keybinds"].append({
+        self.data["keybinds"].append({
             "key": key,
             "gesture": None,
             "sensitivity": 1.0,
             "locked": False
         })
 
+
     def delete_config(self, index):
-        if 0 <= index < len(self._data.get("keybinds", [])):
-            self._data["keybinds"].pop(index)
+        if 0 <= index < len(self.data.get("keybinds", [])):
+            self.data["keybinds"].pop(index)
+
 
     def get_config(self):
-        return self._data
+        return self.data
 
+
+    # -------------------------
+    # Calibration
+    # -------------------------
+    def set_calibration(self, min_pitch, max_pitch, min_yaw, max_yaw):
+        self.data["calibration"] = {
+            "min_pitch": min_pitch,
+            "max_pitch": max_pitch,
+            "min_yaw": min_yaw,
+            "max_yaw": max_yaw
+        }
+
+
+    def get_calibration(self):
+        return self.data.get("calibration", self.DEFAULT_CONFIG["calibration"])
+    
+
+    # -------------------------
+    # Mouse Speed
+    # -------------------------
+    def set_mouse_speed(self, value):
+        value = float(value)
+        value = max(0.1, min(value, 5.0))  # clamp (optional but safe)
+
+        self.data["mouse_speed"] = value
+
+
+    def get_mouse_speed(self):
+        return self.data.get("mouse_speed", 1.0)
+    
+
+    # -------------------------
+    # Normalization
+    # -------------------------
     def _normalize(self):
-        if "keybinds" not in self._data:
-            self._data["keybinds"] = self.DEFAULT_CONFIG["keybinds"]
+        if "keybinds" not in self.data or not isinstance(self.data["keybinds"], list):
+            self.data["keybinds"] = self.DEFAULT_CONFIG["keybinds"]
 
-        if not isinstance(self._data["keybinds"], list):
-            self._data["keybinds"] = self.DEFAULT_CONFIG["keybinds"]
+        if "mouse_speed" not in self.data:
+            self.data["mouse_speed"] = self.DEFAULT_CONFIG["mouse_speed"]
+
+        if "calibration" not in self.data or not isinstance(self.data["calibration"], dict):
+            self.data["calibration"] = self.DEFAULT_CONFIG["calibration"]
