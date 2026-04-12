@@ -27,7 +27,9 @@ class ConfigManager:
             ]
         }
 
-
+    # -------------------------
+    # LOAD / SAVE
+    # -------------------------
     def load_config(self):
         if not os.path.exists(CONFIG_FILE):
             self.data = copy.deepcopy(self.DEFAULT_CONFIG)
@@ -41,32 +43,70 @@ class ConfigManager:
 
         self._normalize()
 
-
     def save_config(self):
         with open(CONFIG_FILE, "w") as f:
             json.dump(self.data, f, indent=4)
 
-
-    def add_config(self, key):
-        self.data["keybinds"].append({
-            "key": key,
-            "gesture": None,
-            "sensitivity": 1.0,
-            "locked": False
-        })
-
-
-    def delete_config(self, index):
-        if 0 <= index < len(self.data.get("keybinds", [])):
-            self.data["keybinds"].pop(index)
-
-
+    # -------------------------
+    # CORE ACCESS
+    # -------------------------
     def get_config(self):
         return self.data
 
+    # -------------------------
+    # KEYBIND OPERATIONS (MERGED FROM KEYBIND_REGISTRAR)
+    # -------------------------
+    def get_keybinds(self):
+        return self.data.get("keybinds", [])
+
+    def add_keybind(self, key, gesture=None, sensitivity=1.0, locked=False):
+        keybinds = self.get_keybinds()
+
+        for kb in keybinds:
+            if kb["key"] == key:
+                raise ValueError(f"Keybind for '{key}' already exists")
+
+        keybinds.append({
+            "key": key,
+            "gesture": gesture,
+            "sensitivity": sensitivity,
+            "locked": locked
+        })
+
+        self.data["keybinds"] = keybinds
+
+    def delete_keybind(self, index):
+        keybinds = self.get_keybinds()
+
+        if index < 0 or index >= len(keybinds):
+            return
+
+        if keybinds[index].get("locked", False):
+            return
+
+        keybinds.pop(index)
+        self.data["keybinds"] = keybinds
+
+    def update_gesture(self, key, gesture):
+        for kb in self.get_keybinds():
+            if kb["key"] == key:
+                kb["gesture"] = gesture
+                break
+
+    def update_sensitivity(self, key, sensitivity):
+        for kb in self.get_keybinds():
+            if kb["key"] == key:
+                kb["sensitivity"] = float(sensitivity)
+                break
+
+    def get_by_key(self, key):
+        for kb in self.get_keybinds():
+            if kb["key"] == key:
+                return kb
+        return None
 
     # -------------------------
-    # Calibration
+    # CALIBRATION
     # -------------------------
     def set_calibration(self, min_pitch, max_pitch, min_yaw, max_yaw):
         self.data["calibration"] = {
@@ -76,31 +116,26 @@ class ConfigManager:
             "max_yaw": max_yaw
         }
 
-
     def get_calibration(self):
         return self.data.get("calibration", self.DEFAULT_CONFIG["calibration"])
-    
 
     # -------------------------
-    # Mouse Speed
+    # MOUSE SPEED
     # -------------------------
     def set_mouse_speed(self, value):
         value = float(value)
-        value = max(0.1, min(value, 5.0))  # clamp (optional but safe)
-
+        value = max(0.1, min(value, 5.0))
         self.data["mouse_speed"] = value
-
 
     def get_mouse_speed(self):
         return self.data.get("mouse_speed", 1.0)
-    
 
     # -------------------------
-    # Normalization
+    # NORMALIZATION
     # -------------------------
     def _normalize(self):
         if "keybinds" not in self.data or not isinstance(self.data["keybinds"], list):
-            self.data["keybinds"] = self.DEFAULT_CONFIG["keybinds"]
+            self.data["keybinds"] = copy.deepcopy(self.DEFAULT_CONFIG["keybinds"])
 
         if "mouse_speed" not in self.data:
             self.data["mouse_speed"] = self.DEFAULT_CONFIG["mouse_speed"]
