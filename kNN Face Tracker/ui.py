@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QHeaderView,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QHeaderView, QLineEdit,
     QPushButton, QSlider, QTableWidget, QTableWidgetItem, QDialog
 )
 from PySide6.QtGui import QImage, QPixmap, QKeySequence
@@ -14,7 +14,7 @@ class MainWindow(QWidget):
     # -------------------------
     add_keybind_requested = Signal(str)
     delete_keybind_requested = Signal(int)
-    edit_gesture_requested = Signal(int)
+    edit_gesture_requested = Signal(int, str)
     edit_sensitivity_requested = Signal(int, float)
     calibrate_requested = Signal()
     mouse_speed_changed = Signal(float)
@@ -123,8 +123,16 @@ class MainWindow(QWidget):
 
     def _on_edit_gesture_clicked(self):
         row = self.table.currentRow()
-        if row >= 0:
-            self.edit_gesture_requested.emit(row)
+        if row < 0:
+            return
+
+        dialog = GestureDialog(self)
+
+        if dialog.exec():
+            name = dialog.get_name()
+            if name:
+                self.edit_gesture_requested.emit(row, name)
+
 
     def _on_edit_sensitivity_clicked(self):
         row = self.table.currentRow()
@@ -150,7 +158,8 @@ class MainWindow(QWidget):
         for i, kb in enumerate(keybinds):
             self.table.insertRow(i)
             self.table.setItem(i, 0, QTableWidgetItem(str(kb["key"])))
-            self.table.setItem(i, 1, QTableWidgetItem(str(kb["gesture"])))
+            gesture = kb["gesture"]
+            self.table.setItem(i, 1, QTableWidgetItem(gesture["name"] if gesture else "--"))
             self.table.setItem(i, 2, QTableWidgetItem(str(kb["sensitivity"])))
 
 
@@ -239,3 +248,30 @@ class SensitivityDialog(QDialog):
 
     def get_value(self):
         return self.slider.value() / 10.0
+    
+
+class GestureDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Gesture")
+
+        self.name = None
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Enter a name, pose a gesture, then confirm when ready."))
+
+        self.input = QLineEdit()
+        self.input.setPlaceholderText("Gesture name")
+        layout.addWidget(self.input)
+
+        confirm = QPushButton("Confirm")
+        confirm.clicked.connect(self.accept)
+
+        layout.addWidget(confirm)
+
+        # Allow Enter key to confirm
+        self.input.returnPressed.connect(self.accept)
+
+    def get_name(self):
+        return self.input.text().strip()

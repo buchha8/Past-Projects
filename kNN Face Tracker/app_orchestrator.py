@@ -1,4 +1,5 @@
 import cv2
+import gestures
 import landmarks
 from PySide6.QtCore import QObject, QTimer
 
@@ -14,6 +15,12 @@ class AppOrchestrator(QObject):
         # Camera / vision pipeline
         self.cap = cv2.VideoCapture(0)
         self.landmarker = landmarks.create_landmarker()
+
+        # -------------------------
+        # OTHER INITS
+        # -------------------------
+        self.blendshape_order = None
+        self.current_blendshapes = None
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -48,6 +55,9 @@ class AppOrchestrator(QObject):
 
         timestamp_ms = int(self.cap.get(cv2.CAP_PROP_POS_MSEC))
         results = landmarks.detect_face_data(frame, self.landmarker, timestamp_ms)
+        self.current_blendshapes = landmarks.extract_blendshape_vector(results)
+        if self.current_blendshapes and self.blendshape_order is None:
+            self.blendshape_order = gestures.initialize_order(self.current_blendshapes)
 
         landmarks_pixels = landmarks.extract_landmarks_pixels(results, frame)
         transform_matrix = landmarks.extract_transform_matrix(results)
@@ -80,8 +90,16 @@ class AppOrchestrator(QObject):
         self.config.save_config()
         self.window.update_table(self.config.get_keybinds())
 
-    def on_edit_gesture(self, row):
-        print("Edit gesture:", row)
+    def on_edit_gesture(self, row, name):
+        keybinds = self.config.get_keybinds()
+        key = keybinds[row]["key"]
+        gesture_data = {
+            "name": name,
+            "blendshapes": self.current_blendshapes
+        }
+        self.config.update_gesture(key, gesture_data)
+        self.config.save_config()
+        self.window.update_table(self.config.get_keybinds())
 
     def on_edit_sensitivity(self, row, value):
         keybinds = self.config.get_keybinds()

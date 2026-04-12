@@ -50,7 +50,10 @@ def extract_blendshape_vector(results):
     if not results.face_blendshapes:
         return None
     blendshapes = results.face_blendshapes[0]
-    return np.array([b.score for b in blendshapes], dtype=np.float32)
+    return {
+        bs.category_name: float(bs.score)  # force Python float
+        for bs in blendshapes
+    }
 
 
 def compute_head_pose_angles(transform_matrix):
