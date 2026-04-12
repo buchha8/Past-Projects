@@ -12,6 +12,18 @@
             "gesture": null,
             "sensitivity": 1.0,
             "locked": true
+        },
+        {
+            "key": "Shift",
+            "gesture": null,
+            "sensitivity": 1.0,
+            "locked": false
+        },
+        {
+            "key": "Control",
+            "gesture": null,
+            "sensitivity": 1.0,
+            "locked": false
         }
     ]
 }

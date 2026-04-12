@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QHeaderView,
     QPushButton, QSlider, QTableWidget, QTableWidgetItem, QDialog
 )
 from PySide6.QtGui import QImage, QPixmap, QKeySequence
@@ -15,6 +15,7 @@ class MainWindow(QWidget):
     add_keybind_requested = Signal(str)
     delete_keybind_requested = Signal(int)
     edit_gesture_requested = Signal(int)
+    edit_sensitivity_requested = Signal(int, float)
     calibrate_requested = Signal()
     mouse_speed_changed = Signal(float)
     closed = Signal()
@@ -32,6 +33,12 @@ class MainWindow(QWidget):
         self.landmarks_label = QLabel()
         self.landmarks_label.setFixedSize(200, 200)
         layout.addWidget(self.landmarks_label, alignment=Qt.AlignCenter)
+
+        # -------------------------
+        # CURRENT GESTURE
+        # -------------------------
+        self.gesture_label = QLabel("Current Gesture: --")
+        layout.addWidget(self.gesture_label)
 
         # -------------------------
         # ANGLES
@@ -55,7 +62,7 @@ class MainWindow(QWidget):
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Key", "Gesture", "Sensitivity"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         layout.addWidget(self.table)
 
         # -------------------------
@@ -65,12 +72,14 @@ class MainWindow(QWidget):
 
         self.add_btn = QPushButton("Add Keybind")
         self.del_btn = QPushButton("Delete Keybind")
-        self.edit_btn = QPushButton("Edit Gesture")
+        self.edit_gesture_btn = QPushButton("Edit Gesture")
+        self.edit_sensitivity_btn = QPushButton("Edit Sensitivity")
         self.calibrate_btn = QPushButton("Calibrate")
 
         btns.addWidget(self.add_btn)
         btns.addWidget(self.del_btn)
-        btns.addWidget(self.edit_btn)
+        btns.addWidget(self.edit_gesture_btn)
+        btns.addWidget(self.edit_sensitivity_btn)
         btns.addWidget(self.calibrate_btn)
 
         layout.addLayout(btns)
@@ -91,16 +100,20 @@ class MainWindow(QWidget):
         self.add_btn.clicked.connect(self._on_add_clicked)
         self.del_btn.clicked.connect(self._on_delete_clicked)
         self.mouse_speed_slider.valueChanged.connect(self._on_mouse_speed_changed)
-        self.edit_btn.clicked.connect(self._on_edit_gesture_clicked)
+        self.edit_gesture_btn.clicked.connect(self._on_edit_gesture_clicked)
+        self.edit_sensitivity_btn.clicked.connect(self._on_edit_sensitivity_clicked)
         self.calibrate_btn.clicked.connect(self._on_calibrate_clicked)
     
     # -------------------------
     # INTERNAL EVENT TRANSLATION
     # -------------------------
     def _on_add_clicked(self):
-        key = self._capture_input()
-        if key:
-            self.add_keybind_requested.emit(str(key))
+        dialog = InputCaptureDialog(self)
+
+        if dialog.exec():
+            value = dialog.value
+            if value is not None:
+                self.add_keybind_requested.emit(value)
 
     def _on_delete_clicked(self):
         row = self.table.currentRow()
@@ -112,6 +125,15 @@ class MainWindow(QWidget):
         row = self.table.currentRow()
         if row >= 0:
             self.edit_gesture_requested.emit(row)
+
+    def _on_edit_sensitivity_clicked(self):
+        row = self.table.currentRow()
+        if row >= 0:
+            current_value = float(self.table.item(row, 2).text())
+            dialog = SensitivityDialog(current_value, self)
+            if dialog.exec():
+                new_value = dialog.get_value()
+                self.edit_sensitivity_requested.emit(row, new_value)
 
     def _on_calibrate_clicked(self):
         self.calibrate_requested.emit()
@@ -131,10 +153,12 @@ class MainWindow(QWidget):
             self.table.setItem(i, 1, QTableWidgetItem(str(kb["gesture"])))
             self.table.setItem(i, 2, QTableWidgetItem(str(kb["sensitivity"])))
 
+
     def update_head_angles(self, roll, pitch, yaw):
         self.roll_label.setText(f"Roll: {roll:.1f}°" if roll else "Roll: --")
         self.pitch_label.setText(f"Pitch: {pitch:.1f}°" if pitch else "Pitch: --")
         self.yaw_label.setText(f"Yaw: {yaw:.1f}°" if yaw else "Yaw: --")
+
 
     def update_landmarks(self, landmarks_display):
         size = self.landmarks_label.width()
@@ -149,45 +173,69 @@ class MainWindow(QWidget):
         qimg = QImage(img.data, size, size, 3 * size, QImage.Format_RGB888)
         self.landmarks_label.setPixmap(QPixmap.fromImage(qimg))
 
-    # -------------------------
-    # INPUT DIALOG
-    # -------------------------
-    def _capture_input(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Enter Input")
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("Press key or click mouse"))
 
-        captured = {"value": None}
+    def update_gesture(self, gesture):
+        self.gesture_label.setText(f"Current Gesture: {gesture}" if gesture else "Current Gesture: --")
 
-
-        def keyPressEvent(event):
-            key = event.key()
-
-            key_str = QKeySequence(key).toString()
-
-            if not key_str:
-                key_str = str(key)  # fallback (rare)
-
-            captured["value"] = key_str
-            dialog.accept()
-
-        def mousePressEvent(event):
-            button_map = {
-                Qt.LeftButton: "Left Click",
-                Qt.RightButton: "Right Click",
-                Qt.MiddleButton: "Middle Click"
-            }
-            captured["value"] = button_map.get(event.button(), "Mouse")
-            dialog.accept()
-
-        dialog.keyPressEvent = keyPressEvent
-        dialog.mousePressEvent = mousePressEvent
-
-        dialog.exec()
-        return captured["value"]
-    
 
     def closeEvent(self, event):
         self.closed.emit()
         super().closeEvent(event)
+
+
+class InputCaptureDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.value = None
+        self.setWindowTitle("Enter Input")
+        layout = QVBoxLayout(self)
+
+        self.label = QLabel("Press key or click")
+        layout.addWidget(self.label)
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        key_str = QKeySequence(key).toString()
+        if not key_str:
+                key_str = str(key)  # fallback (rare)
+        self.value = key_str
+        self.accept()
+
+    def mousePressEvent(self, event):
+        button_map = {
+            Qt.LeftButton: "Left Click",
+            Qt.RightButton: "Right Click",
+            Qt.MiddleButton: "Middle Click"
+        }
+        self.value = button_map.get(event.button(), "Mouse")
+        self.accept()
+
+
+class SensitivityDialog(QDialog):
+    def __init__(self, initial_value, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Sensitivity")
+
+        layout = QVBoxLayout(self)
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(1)
+        self.slider.setMaximum(50)
+        self.slider.setValue(int(initial_value * 10))
+
+        self.label = QLabel(f"{initial_value:.1f}")
+
+        confirm = QPushButton("Confirm")
+        confirm.clicked.connect(self.accept)
+
+        self.slider.valueChanged.connect(self._update_label)
+
+        layout.addWidget(self.slider)
+        layout.addWidget(self.label)
+        layout.addWidget(confirm)
+
+    def _update_label(self, value):
+        self.label.setText(f"{value / 10:.1f}")
+
+    def get_value(self):
+        return self.slider.value() / 10.0

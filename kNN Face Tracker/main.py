@@ -1,6 +1,6 @@
 import sys
 import config_manager
-import keybind_manager
+import keybind_registrar
 import ui
 import app_orchestrator
 from PySide6.QtWidgets import QApplication
@@ -14,7 +14,7 @@ def main():
     # -------------------------
     config = config_manager.ConfigManager()
     config.load_config()
-    keybinds = keybind_manager.KeybindManager(config)
+    keybinds = keybind_registrar.KeybindRegistrar(config)
     window = ui.MainWindow()
     orchestrator = app_orchestrator.AppOrchestrator(config, keybinds, window)
     

@@ -70,6 +70,7 @@ class AppOrchestrator(QObject):
         # ---- UI updates ----
         self.window.update_head_angles(roll, pitch, yaw)
         self.window.update_landmarks(display)
+        self.window.update_gesture(None)  # placeholder for gestures later
 
         return True
 
@@ -84,15 +85,23 @@ class AppOrchestrator(QObject):
         except ValueError:
             pass
 
-    def on_delete_keybind(self, index):
-        self.keybinds.delete_keybind(index)
+    def on_delete_keybind(self, row):
+        self.keybinds.delete_keybind(row)
         self.config.save_config()
         self.window.update_table(self.keybinds.get_keybinds())
 
 
-    def on_edit_gesture(self, index):
+    def on_edit_gesture(self, row):
         # placeholder for GestureManager later
-        print("Edit gesture:", index)
+        print("Edit gesture:", row)
+
+
+    def on_edit_sensitivity(self, row, value):
+        keybinds = self.keybinds.get_keybinds()
+        key = keybinds[row]["key"]
+        self.keybinds.update_sensitivity(key, value)
+        self.config.save_config()
+        self.window.refresh_table()
 
 
     def on_calibrate(self):
