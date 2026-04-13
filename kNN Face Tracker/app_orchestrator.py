@@ -21,6 +21,9 @@ class AppOrchestrator(QObject):
         # -------------------------
         self.blendshape_order = None
         self.current_blendshapes = None
+        self.current_roll = None
+        self.current_pitch = None
+        self.current_yaw = None
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -62,17 +65,18 @@ class AppOrchestrator(QObject):
         landmarks_pixels = landmarks.extract_landmarks_pixels(results, frame)
         transform_matrix = landmarks.extract_transform_matrix(results)
 
-        roll, pitch, yaw = landmarks.compute_head_pose_angles(transform_matrix)
+        self.current_roll, self.current_pitch, self.current_yaw = landmarks.compute_head_pose_angles(transform_matrix)
 
         centered = landmarks.compute_landmarks_centered(landmarks_pixels)
         normalized = landmarks.compute_landmarks_normalized(landmarks_pixels, centered)
         display = landmarks.compute_landmarks_display(normalized)
 
-        self.window.update_head_angles(roll, pitch, yaw)
+        self.window.update_head_angles(self.current_roll, self.current_pitch, self.current_yaw)
         self.window.update_landmarks(display)
         self.window.update_gesture(None)
 
         return True
+
 
     # -------------------------
     # UI HANDLERS
@@ -109,8 +113,27 @@ class AppOrchestrator(QObject):
         self.config.save_config()
         self.window.update_table(self.config.get_keybinds())
 
-    def on_calibrate(self):
-        print("Calibrate triggered")
+    def on_calibrate(self, step_index):
+        if self.current_pitch is None or self.current_yaw is None:
+            return
+
+        if step_index == 0:
+            self.min_pitch = float(self.current_pitch)
+        elif step_index == 1:
+            self.max_pitch = float(self.current_pitch)
+        elif step_index == 2:
+            self.min_yaw = float(self.current_yaw)
+        elif step_index == 3:
+            self.max_yaw = float(self.current_yaw)
+
+            # final step → persist
+            self.config.set_calibration(
+                self.min_pitch,
+                self.max_pitch,
+                self.min_yaw,
+                self.max_yaw,
+            )
+            self.config.save_config()
 
     def on_mouse_speed_changed(self, speed):
         self.config.set_mouse_speed(speed)

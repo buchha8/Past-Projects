@@ -16,7 +16,7 @@ class MainWindow(QWidget):
     delete_keybind_requested = Signal(int)
     edit_gesture_requested = Signal(int, str)
     edit_sensitivity_requested = Signal(int, float)
-    calibrate_requested = Signal()
+    calibrate_requested = Signal(int)
     mouse_speed_changed = Signal(float)
     closed = Signal()
 
@@ -143,8 +143,23 @@ class MainWindow(QWidget):
                 new_value = dialog.get_value()
                 self.edit_sensitivity_requested.emit(row, new_value)
 
+
     def _on_calibrate_clicked(self):
-        self.calibrate_requested.emit()
+        steps = [
+            "Look at the bottom edge of the monitor, then Confirm.",
+            "Look at the top edge of the monitor, then Confirm.",
+            "Look at the left edge of the monitor, then Confirm.",
+            "Look at the right edge of the monitor, then Confirm.",
+        ]
+
+        for i, message in enumerate(steps):
+            dialog = CalibrateDialog(message, self)
+
+            # emit step index directly
+            dialog.confirmed.connect(lambda i=i: self.calibrate_requested.emit(i))
+
+            if not dialog.exec():
+                return
 
 
     def _on_mouse_speed_changed(self, value):
@@ -220,6 +235,33 @@ class InputCaptureDialog(QDialog):
         self.accept()
 
 
+class GestureDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Gesture")
+
+        self.name = None
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Enter a name, pose a gesture, then confirm when ready."))
+
+        self.input = QLineEdit()
+        self.input.setPlaceholderText("Gesture name")
+        layout.addWidget(self.input)
+
+        confirm = QPushButton("Confirm")
+        confirm.clicked.connect(self.accept)
+
+        layout.addWidget(confirm)
+
+        # Allow Enter key to confirm
+        self.input.returnPressed.connect(self.accept)
+
+    def get_name(self):
+        return self.input.text().strip()
+
+
 class SensitivityDialog(QDialog):
     def __init__(self, initial_value, parent=None):
         super().__init__(parent)
@@ -250,28 +292,21 @@ class SensitivityDialog(QDialog):
         return self.slider.value() / 10.0
     
 
-class GestureDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Edit Gesture")
+class CalibrateDialog(QDialog):
+    confirmed = Signal()
 
-        self.name = None
+    def __init__(self, message, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Calibrate")
 
         layout = QVBoxLayout(self)
-
-        layout.addWidget(QLabel("Enter a name, pose a gesture, then confirm when ready."))
-
-        self.input = QLineEdit()
-        self.input.setPlaceholderText("Gesture name")
-        layout.addWidget(self.input)
+        layout.addWidget(QLabel(message))
 
         confirm = QPushButton("Confirm")
-        confirm.clicked.connect(self.accept)
+        confirm.clicked.connect(self._on_confirm)
 
         layout.addWidget(confirm)
 
-        # Allow Enter key to confirm
-        self.input.returnPressed.connect(self.accept)
-
-    def get_name(self):
-        return self.input.text().strip()
+    def _on_confirm(self):
+        self.confirmed.emit()
+        self.accept()
