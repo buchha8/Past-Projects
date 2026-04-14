@@ -39,6 +39,8 @@ class MainWindow(QWidget):
         # -------------------------
         self.gesture_label = QLabel("Current Gesture: --")
         layout.addWidget(self.gesture_label)
+        self.toggle_label = QLabel("Toggle: --")
+        layout.addWidget(self.toggle_label)
 
         # -------------------------
         # ANGLES
@@ -200,6 +202,9 @@ class MainWindow(QWidget):
 
     def update_gesture(self, gesture):
         self.gesture_label.setText(f"Current Gesture: {gesture}" if gesture else "Current Gesture: --")
+    
+    def update_toggle(self, toggle_triggered):
+        self.toggle_label.setText(f"Toggle: {'ON' if toggle_triggered else 'OFF'}")
 
 
     def closeEvent(self, event):

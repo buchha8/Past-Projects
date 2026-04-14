@@ -1,6 +1,8 @@
 import cv2
 import gestures
 import landmarks
+import pyautogui
+import time
 from PySide6.QtCore import QObject, QTimer
 
 
@@ -24,6 +26,10 @@ class AppOrchestrator(QObject):
         self.current_roll = None
         self.current_pitch = None
         self.current_yaw = None
+        self.active_key = None
+        self.enabled = True
+        self.toggle_start_time = None
+        self.toggle_triggered = False
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -77,13 +83,74 @@ class AppOrchestrator(QObject):
         self.blendshape_order
         )
 
+        new_key = None
+
+        # -------------------------
+        # GESTURE PROCESSING
+        # -------------------------
         if gesture:
+            key = gesture["key"]
             self.window.update_gesture(gesture["name"])
+
+            # -------------------------
+            # TOGGLE (CONTROL ONLY)
+            # -------------------------
+            if key == "Toggle":
+                now = time.time()
+
+                if self.toggle_start_time is None:
+                    self.toggle_start_time = now
+                    self.toggle_triggered = False
+
+                elif not self.toggle_triggered:
+                    if now - self.toggle_start_time >= 1.0:
+                        self.enabled = not self.enabled
+                        self.toggle_triggered = True
+
+                        # if disabling, release active input
+                        if not self.enabled:
+                            if self.active_key is not None:
+                                self.release_action(self.active_key)
+                                self.active_key = None
+
+                new_key = None  # IMPORTANT: Toggle never enters input system
+
+            # -------------------------
+            # NORMAL GESTURES
+            # -------------------------
+            elif self.enabled and key != "Neutral":
+                new_key = key
+
         else:
             self.window.update_gesture(None)
-        
+
+        # -------------------------
+        # RESET TOGGLE IF NOT CONTINUOUS
+        # -------------------------
+        if not gesture or gesture["key"] != "Toggle":
+            self.toggle_start_time = None
+            self.toggle_triggered = False
+
+        # -------------------------
+        # INPUT STATE MACHINE
+        # -------------------------
+        if new_key != self.active_key:
+            # release old
+            if self.active_key is not None:
+                self.release_action(self.active_key)
+
+            # press new
+            if new_key is not None:
+                self.press_action(new_key)
+
+            self.active_key = new_key
+
+        # -------------------------
+        # UI UPDATE
+        # -------------------------
         self.window.update_head_angles(self.current_roll, self.current_pitch, self.current_yaw)
         self.window.update_landmarks(display)
+        self.window.update_toggle(self.enabled)
 
         return True
 
@@ -159,3 +226,28 @@ class AppOrchestrator(QObject):
         if self.cap:
             self.cap.release()
             self.cap = None
+        
+        if self.active_key is not None:
+            self.release_action(self.active_key)
+            self.active_key = None
+    
+    def press_action(self, key):
+        if key == "Left Click":
+            pyautogui.mouseDown(button="left")
+        elif key == "Right Click":
+            pyautogui.mouseDown(button="right")
+        elif key == "Middle Click":
+            pyautogui.mouseDown(button="middle")
+        else:
+            pyautogui.keyDown(key.lower())
+
+
+    def release_action(self, key):
+        if key == "Left Click":
+            pyautogui.mouseUp(button="left")
+        elif key == "Right Click":
+            pyautogui.mouseUp(button="right")
+        elif key == "Middle Click":
+            pyautogui.mouseUp(button="middle")
+        else:
+            pyautogui.keyUp(key.lower())

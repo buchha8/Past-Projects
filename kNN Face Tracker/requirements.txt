@@ -3,3 +3,4 @@ mediapipe
 PySide6
 numpy
 cv2-python
+pyautogui
