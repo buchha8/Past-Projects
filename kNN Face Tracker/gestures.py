@@ -38,3 +38,63 @@ def vector_to_dict(vector, order):
         k: float(v)
         for k, v in zip(order, vector)
     }
+
+def cosine_similarity(a, b):
+    if a is None or b is None:
+        return -1.0
+
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+
+    if norm_a == 0 or norm_b == 0:
+        return -1.0
+
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
+def get_stored_gesture_vectors(config, order):
+    keybinds = config.get("keybinds", [])
+
+    result = []
+
+    for kb in keybinds:
+        gesture = kb.get("gesture")
+
+        if not gesture:
+            continue
+
+        vec = dict_to_vector(gesture["blendshapes"], order)
+
+        result.append({
+            "key": kb["key"],
+            "name": gesture["name"],
+            "vector": vec,
+            "sensitivity": kb["sensitivity"]
+        })
+
+    return result
+
+def compute_gesture(current_blendshapes, config, order):
+    if current_blendshapes is None:
+        return None
+
+    current_vec = dict_to_vector(current_blendshapes, order)
+
+    stored = get_stored_gesture_vectors(config, order)
+
+    if not stored:
+        return None
+
+    best = None
+    best_score = -1.0
+
+    for g in stored:
+        score = cosine_similarity(current_vec, g["vector"])
+
+        # apply sensitivity scaling
+        score *= g["sensitivity"]
+
+        if score > best_score:
+            best_score = score
+            best = g
+
+    return best  # {"key": ..., "name": ..., "vector": ...}

@@ -19,6 +19,12 @@ class ConfigManager:
             },
             "keybinds": [
                 {
+                    "key": "Neutral",
+                    "gesture": None,
+                    "sensitivity": 1.0,
+                    "locked": True
+                },
+                {
                     "key": "Toggle",
                     "gesture": None,
                     "sensitivity": 1.0,
@@ -136,6 +142,13 @@ class ConfigManager:
     def _normalize(self):
         if "keybinds" not in self.data or not isinstance(self.data["keybinds"], list):
             self.data["keybinds"] = copy.deepcopy(self.DEFAULT_CONFIG["keybinds"])
+        
+        # ensure required locked keybinds exist
+        existing_keys = {kb["key"] for kb in self.data["keybinds"]}
+
+        for default_kb in self.DEFAULT_CONFIG["keybinds"]:
+            if default_kb["key"] not in existing_keys:
+                self.data["keybinds"].append(copy.deepcopy(default_kb))
 
         if "mouse_speed" not in self.data:
             self.data["mouse_speed"] = self.DEFAULT_CONFIG["mouse_speed"]

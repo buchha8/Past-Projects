@@ -71,9 +71,19 @@ class AppOrchestrator(QObject):
         normalized = landmarks.compute_landmarks_normalized(landmarks_pixels, centered)
         display = landmarks.compute_landmarks_display(normalized)
 
+        gesture = gestures.compute_gesture(
+        self.current_blendshapes,
+        self.config.get_config(),
+        self.blendshape_order
+        )
+
+        if gesture:
+            self.window.update_gesture(gesture["name"])
+        else:
+            self.window.update_gesture(None)
+        
         self.window.update_head_angles(self.current_roll, self.current_pitch, self.current_yaw)
         self.window.update_landmarks(display)
-        self.window.update_gesture(None)
 
         return True
 
