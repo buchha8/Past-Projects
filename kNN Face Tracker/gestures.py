@@ -73,33 +73,19 @@ def get_stored_gesture_vectors(config, order):
 
     return result
 
-def weighted_cosine_similarity(a, b, w):
-    # proper weighted cosine (NOT elementwise scaling)
-    a_w = a * w
-    b_w = b * w
-
-    dot = np.dot(a_w, b_w)
-    norm_a = np.linalg.norm(a_w)
-    norm_b = np.linalg.norm(b_w)
-
-    if norm_a == 0 or norm_b == 0:
-        return -1.0
-
-    return float(dot / (norm_a * norm_b))
-
 
 def compute_gesture(current_blendshapes, config, order):
     if current_blendshapes is None:
         return None
 
     current_vec = dict_to_vector(current_blendshapes, order)
-    stored = get_stored_gesture_vectors(config, order)
 
+    stored = get_stored_gesture_vectors(config, order)
     if not stored:
         return None
 
     # -------------------------
-    # GET NEUTRAL VECTOR
+    # FIND NEUTRAL
     # -------------------------
     neutral_vec = None
     for g in stored:
@@ -111,51 +97,26 @@ def compute_gesture(current_blendshapes, config, order):
         return None
 
     # -------------------------
-    # NORMALIZATION
+    # NEUTRAL-RELATIVE SPACE
     # -------------------------
     current_vec = current_vec - neutral_vec
 
-    normalized = []
-    for g in stored:
-        normalized.append({
-            "key": g["key"],
-            "name": g["name"],
-            "vector": g["vector"] - neutral_vec,
-            "sensitivity": g["sensitivity"]
-        })
-
-    # -------------------------
-    # SOFT AUTO-WEIGHTS
-    # -------------------------
-    all_vectors = np.stack([g["vector"] for g in normalized])
-
-    variance = np.var(all_vectors, axis=0)
-
-    # soften influence (IMPORTANT FIX)
-    weights = 1.0 / np.sqrt(variance + 1e-6)
-
-    # normalize weights to prevent scaling explosion
-    weights = weights / (np.mean(weights) + 1e-6)
-
-    # clamp weights to prevent instability
-    weights = np.clip(weights, 0.5, 2.0)
-
-    # -------------------------
-    # CLASSIFICATION
-    # -------------------------
     best = None
     best_score = -1.0
     second_best_score = -1.0
 
-    for g in normalized:
-        score = weighted_cosine_similarity(
-            current_vec,
-            g["vector"],
-            weights
-        )
+    for g in stored:
+        g_vec = g["vector"] - neutral_vec
 
+        # -------------------------
+        # COSINE SIMILARITY
+        # -------------------------
+        score = cosine_similarity(current_vec, g_vec)
+
+        # sensitivity scaling (kept)
         score *= g["sensitivity"]
 
+        # track best / second best
         if score > best_score:
             second_best_score = best_score
             best_score = score
@@ -164,7 +125,7 @@ def compute_gesture(current_blendshapes, config, order):
             second_best_score = score
 
     # -------------------------
-    # THRESHOLDS
+    # DECISION THRESHOLDS
     # -------------------------
     COSINE_THRESHOLD = 0.4
     if best_score < COSINE_THRESHOLD:
