@@ -30,6 +30,9 @@ class AppOrchestrator(QObject):
         self.enabled = True
         self.toggle_start_time = None
         self.toggle_triggered = False
+        self.gesture_candidate = None
+        self.gesture_count = 0
+        self.STABLE_FRAMES = 3
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -192,15 +195,35 @@ class AppOrchestrator(QObject):
         new_key = None
 
         # -------------------------
-        # GESTURE PROCESSING
+        # TEMPORAL SMOOTHING
+        # -------------------------
+        current = gesture["key"] if gesture else None
+
+        if current == self.gesture_candidate:
+            self.gesture_count += 1
+        else:
+            self.gesture_candidate = current
+            self.gesture_count = 1
+
+        # only accept stable gesture after STABLE_FRAMES frames
+        stable_gesture = None
+        if self.gesture_candidate is not None and self.gesture_count >= self.STABLE_FRAMES:
+            stable_gesture = gesture
+
+        # -------------------------
+        # UI UPDATE
         # -------------------------
         if gesture:
-            key = gesture["key"]
             self.window.update_gesture(gesture["name"])
+        else:
+            self.window.update_gesture(None)
 
-            # -------------------------
-            # TOGGLE (CONTROL ONLY)
-            # -------------------------
+        # -------------------------
+        # TOGGLE LOGIC
+        # -------------------------
+        if stable_gesture:
+            key = stable_gesture["key"]
+
             if key == "Toggle":
                 now = time.time()
 
@@ -213,22 +236,17 @@ class AppOrchestrator(QObject):
                         self.enabled = not self.enabled
                         self.toggle_triggered = True
 
-                        # if disabling, release active input
-                        if not self.enabled:
-                            if self.active_key is not None:
-                                self.release_action(self.active_key)
-                                self.active_key = None
+                        if not self.enabled and self.active_key is not None:
+                            self.release_action(self.active_key)
+                            self.active_key = None
 
-                new_key = None  # Toggle never enters input system
+                new_key = None
 
-            # -------------------------
-            # NORMAL GESTURES
-            # -------------------------
             elif self.enabled and key != "Neutral":
                 new_key = key
 
         else:
-            self.window.update_gesture(None)
+            new_key = None
 
         # -------------------------
         # RESET TOGGLE IF NOT CONTINUOUS
@@ -241,11 +259,9 @@ class AppOrchestrator(QObject):
         # INPUT STATE MACHINE
         # -------------------------
         if new_key != self.active_key:
-            # release old
             if self.active_key is not None:
                 self.release_action(self.active_key)
 
-            # press new
             if new_key is not None:
                 self.press_action(new_key)
 

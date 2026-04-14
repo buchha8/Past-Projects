@@ -113,7 +113,7 @@ def compute_gesture(current_blendshapes, config, order):
         # -------------------------
         score = cosine_similarity(current_vec, g_vec)
 
-        # sensitivity scaling (kept)
+        # sensitivity scaling
         score *= g["sensitivity"]
 
         # track best / second best
