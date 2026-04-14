@@ -77,74 +77,9 @@ class AppOrchestrator(QObject):
         normalized = landmarks.compute_landmarks_normalized(landmarks_pixels, centered)
         display = landmarks.compute_landmarks_display(normalized)
 
-        gesture = gestures.compute_gesture(
-        self.current_blendshapes,
-        self.config.get_config(),
-        self.blendshape_order
-        )
-
-        new_key = None
-
-        # -------------------------
-        # GESTURE PROCESSING
-        # -------------------------
-        if gesture:
-            key = gesture["key"]
-            self.window.update_gesture(gesture["name"])
-
-            # -------------------------
-            # TOGGLE (CONTROL ONLY)
-            # -------------------------
-            if key == "Toggle":
-                now = time.time()
-
-                if self.toggle_start_time is None:
-                    self.toggle_start_time = now
-                    self.toggle_triggered = False
-
-                elif not self.toggle_triggered:
-                    if now - self.toggle_start_time >= 1.0:
-                        self.enabled = not self.enabled
-                        self.toggle_triggered = True
-
-                        # if disabling, release active input
-                        if not self.enabled:
-                            if self.active_key is not None:
-                                self.release_action(self.active_key)
-                                self.active_key = None
-
-                new_key = None  # IMPORTANT: Toggle never enters input system
-
-            # -------------------------
-            # NORMAL GESTURES
-            # -------------------------
-            elif self.enabled and key != "Neutral":
-                new_key = key
-
-        else:
-            self.window.update_gesture(None)
-
-        # -------------------------
-        # RESET TOGGLE IF NOT CONTINUOUS
-        # -------------------------
-        if not gesture or gesture["key"] != "Toggle":
-            self.toggle_start_time = None
-            self.toggle_triggered = False
-
-        # -------------------------
-        # INPUT STATE MACHINE
-        # -------------------------
-        if new_key != self.active_key:
-            # release old
-            if self.active_key is not None:
-                self.release_action(self.active_key)
-
-            # press new
-            if new_key is not None:
-                self.press_action(new_key)
-
-            self.active_key = new_key
-
+        gesture = gestures.compute_gesture(self.current_blendshapes, self.config.get_config(), self.blendshape_order)
+        self._process_gesture(gesture)
+        
         # -------------------------
         # UI UPDATE
         # -------------------------
@@ -251,3 +186,67 @@ class AppOrchestrator(QObject):
             pyautogui.mouseUp(button="middle")
         else:
             pyautogui.keyUp(key.lower())
+
+
+    def _process_gesture(self, gesture):
+        new_key = None
+
+        # -------------------------
+        # GESTURE PROCESSING
+        # -------------------------
+        if gesture:
+            key = gesture["key"]
+            self.window.update_gesture(gesture["name"])
+
+            # -------------------------
+            # TOGGLE (CONTROL ONLY)
+            # -------------------------
+            if key == "Toggle":
+                now = time.time()
+
+                if self.toggle_start_time is None:
+                    self.toggle_start_time = now
+                    self.toggle_triggered = False
+
+                elif not self.toggle_triggered:
+                    if now - self.toggle_start_time >= 1.0:
+                        self.enabled = not self.enabled
+                        self.toggle_triggered = True
+
+                        # if disabling, release active input
+                        if not self.enabled:
+                            if self.active_key is not None:
+                                self.release_action(self.active_key)
+                                self.active_key = None
+
+                new_key = None  # Toggle never enters input system
+
+            # -------------------------
+            # NORMAL GESTURES
+            # -------------------------
+            elif self.enabled and key != "Neutral":
+                new_key = key
+
+        else:
+            self.window.update_gesture(None)
+
+        # -------------------------
+        # RESET TOGGLE IF NOT CONTINUOUS
+        # -------------------------
+        if not gesture or gesture["key"] != "Toggle":
+            self.toggle_start_time = None
+            self.toggle_triggered = False
+
+        # -------------------------
+        # INPUT STATE MACHINE
+        # -------------------------
+        if new_key != self.active_key:
+            # release old
+            if self.active_key is not None:
+                self.release_action(self.active_key)
+
+            # press new
+            if new_key is not None:
+                self.press_action(new_key)
+
+            self.active_key = new_key

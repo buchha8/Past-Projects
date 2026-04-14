@@ -84,17 +84,55 @@ def compute_gesture(current_blendshapes, config, order):
     if not stored:
         return None
 
+    # -------------------------
+    # GET NEUTRAL VECTOR
+    # -------------------------
+    neutral_vec = None
+    for g in stored:
+        if g["key"] == "Neutral":
+            neutral_vec = g["vector"]
+            break
+
+    if neutral_vec is None:
+        return None
+
+    # -------------------------
+    # NORMALIZATION
+    # -------------------------
+    current_vec = current_vec - neutral_vec
+
     best = None
     best_score = -1.0
+    second_best_score = -1.0
 
     for g in stored:
-        score = cosine_similarity(current_vec, g["vector"])
+        normalized_vec = g["vector"] - neutral_vec
+
+        score = cosine_similarity(current_vec, normalized_vec)
 
         # apply sensitivity scaling
         score *= g["sensitivity"]
 
+        # track best and second best
         if score > best_score:
+            second_best_score = best_score
             best_score = score
             best = g
+        elif score > second_best_score:
+            second_best_score = score
 
-    return best  # {"key": ..., "name": ..., "vector": ...}
+    # -------------------------
+    # COSINE THRESHOLD
+    # -------------------------
+    COSINE_THRESHOLD = 0.6
+    if best_score < COSINE_THRESHOLD:
+        return None
+
+    # -------------------------
+    # MARGIN THRESHOLD
+    # -------------------------
+    MARGIN_THRESHOLD = 0.05
+    if best_score - second_best_score < MARGIN_THRESHOLD:
+        return None
+
+    return best
