@@ -1,18 +1,19 @@
 import cv2
 import gestures
 import landmarks
-import pyautogui
 import time
+import pyautogui
 from PySide6.QtCore import QObject, QTimer
 
 
 class AppOrchestrator(QObject):
 
-    def __init__(self, config, window):
+    def __init__(self, config, window, mouse):
         super().__init__()
 
         self.config = config
         self.window = window
+        self.mouse = mouse
 
         # Camera / vision pipeline
         self.cap = cv2.VideoCapture(0)
@@ -33,6 +34,10 @@ class AppOrchestrator(QObject):
         self.gesture_candidate = None
         self.gesture_count = 0
         self.STABLE_FRAMES = 5
+        self.min_pitch = 0.0
+        self.max_pitch = 1.0
+        self.min_yaw = 0.0
+        self.max_yaw = 1.0
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -82,6 +87,17 @@ class AppOrchestrator(QObject):
 
         gesture = gestures.compute_gesture(self.current_blendshapes, self.config.get_config(), self.blendshape_order)
         self._process_gesture(gesture)
+        
+        if self._calibration_valid():
+            print(self.current_pitch, self.current_yaw)
+            self.mouse.update(
+            self.current_pitch,
+            self.current_yaw,
+            self.min_pitch,
+            self.max_pitch,
+            self.min_yaw,
+            self.max_yaw,
+            )
         
         # -------------------------
         # UI UPDATE
@@ -277,3 +293,13 @@ class AppOrchestrator(QObject):
                 self.press_action(new_key)
 
             self.active_key = new_key
+    
+    def _calibration_valid(self):
+        return (
+            self.min_pitch is not None and
+            self.max_pitch is not None and
+            self.min_yaw is not None and
+            self.max_yaw is not None and
+            self.max_pitch > self.min_pitch and
+            self.max_yaw > self.min_yaw
+        )
