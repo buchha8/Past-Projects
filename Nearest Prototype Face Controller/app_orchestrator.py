@@ -32,7 +32,7 @@ class AppOrchestrator(QObject):
         self.toggle_triggered = False
         self.gesture_candidate = None
         self.gesture_count = 0
-        self.STABLE_FRAMES = 3
+        self.STABLE_FRAMES = 5
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -195,33 +195,47 @@ class AppOrchestrator(QObject):
         new_key = None
 
         # -------------------------
-        # TEMPORAL SMOOTHING
+        # NO INPUT CASE (DO NOT CHANGE STATE)
         # -------------------------
-        current = gesture["key"] if gesture else None
+        if gesture is None:
+            stable_gesture = getattr(self, "stable_gesture", None)
+            if stable_gesture is not None:
+                self.window.update_gesture(stable_gesture["name"])
+            else:
+                self.window.update_gesture(None)
+            return
 
-        if current == self.gesture_candidate:
+        current = gesture
+
+        # -------------------------
+        # UPDATE CANDIDATE TRACKING
+        # -------------------------
+        if self.gesture_candidate is not None and current["key"] == self.gesture_candidate["key"]:
             self.gesture_count += 1
         else:
             self.gesture_candidate = current
             self.gesture_count = 1
 
-        # only accept stable gesture after STABLE_FRAMES frames
-        stable_gesture = None
-        if self.gesture_candidate is not None and self.gesture_count >= self.STABLE_FRAMES:
-            stable_gesture = gesture
+        # -------------------------
+        # ONLY UPDATE STABLE WHEN THRESHOLD HIT
+        # -------------------------
+        if self.gesture_count >= self.STABLE_FRAMES:
+            self.stable_gesture = self.gesture_candidate
+
+        stable_gesture = getattr(self, "stable_gesture", None)
 
         # -------------------------
-        # UI UPDATE
+        # UI ALWAYS SHOWS STABLE (HOLD LAST VALUE)
         # -------------------------
-        if gesture:
-            self.window.update_gesture(gesture["name"])
+        if stable_gesture is not None:
+            self.window.update_gesture(stable_gesture["name"])
         else:
             self.window.update_gesture(None)
 
         # -------------------------
-        # TOGGLE LOGIC
+        # TOGGLE LOGIC (USES STABLE ONLY)
         # -------------------------
-        if stable_gesture:
+        if stable_gesture is not None:
             key = stable_gesture["key"]
 
             if key == "Toggle":
@@ -245,13 +259,10 @@ class AppOrchestrator(QObject):
             elif self.enabled and key != "Neutral":
                 new_key = key
 
-        else:
-            new_key = None
-
         # -------------------------
-        # RESET TOGGLE IF NOT CONTINUOUS
+        # RESET TOGGLE IF NECESSARY
         # -------------------------
-        if not gesture or gesture["key"] != "Toggle":
+        if stable_gesture is None or stable_gesture["key"] != "Toggle":
             self.toggle_start_time = None
             self.toggle_triggered = False
 

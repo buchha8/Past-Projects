@@ -2,10 +2,6 @@ import numpy as np
 
 
 def initialize_order(blendshape_dict):
-    """
-    Returns a frozen canonical order (alphabetical).
-    """
-
     if blendshape_dict is None:
         raise ValueError("Cannot initialize order from None")
 
@@ -13,10 +9,6 @@ def initialize_order(blendshape_dict):
 
 
 def dict_to_vector(blendshape_dict, order):
-    """
-    dict[str, float] -> np.ndarray
-    """
-
     if blendshape_dict is None:
         return None
 
@@ -27,10 +19,6 @@ def dict_to_vector(blendshape_dict, order):
 
 
 def vector_to_dict(vector, order):
-    """
-    np.ndarray -> dict[str, float]
-    """
-
     if vector is None:
         return None
 
@@ -38,6 +26,7 @@ def vector_to_dict(vector, order):
         k: float(v)
         for k, v in zip(order, vector)
     }
+
 
 def cosine_similarity(a, b):
     if a is None or b is None:
@@ -51,6 +40,7 @@ def cosine_similarity(a, b):
 
     return float(np.dot(a, b) / (norm_a * norm_b))
 
+
 def get_stored_gesture_vectors(config, order):
     keybinds = config.get("keybinds", [])
 
@@ -58,7 +48,6 @@ def get_stored_gesture_vectors(config, order):
 
     for kb in keybinds:
         gesture = kb.get("gesture")
-
         if not gesture:
             continue
 
@@ -75,6 +64,9 @@ def get_stored_gesture_vectors(config, order):
 
 
 def compute_gesture(current_blendshapes, config, order):
+    # -------------------------
+    # HARD FAILURE ONLY
+    # -------------------------
     if current_blendshapes is None:
         return None
 
@@ -97,7 +89,7 @@ def compute_gesture(current_blendshapes, config, order):
         return None
 
     # -------------------------
-    # NEUTRAL-RELATIVE SPACE
+    # NEUTRAL RELATIVE SPACE
     # -------------------------
     current_vec = current_vec - neutral_vec
 
@@ -108,15 +100,9 @@ def compute_gesture(current_blendshapes, config, order):
     for g in stored:
         g_vec = g["vector"] - neutral_vec
 
-        # -------------------------
-        # COSINE SIMILARITY
-        # -------------------------
         score = cosine_similarity(current_vec, g_vec)
-
-        # sensitivity scaling
         score *= g["sensitivity"]
 
-        # track best / second best
         if score > best_score:
             second_best_score = best_score
             best_score = score
@@ -125,14 +111,23 @@ def compute_gesture(current_blendshapes, config, order):
             second_best_score = score
 
     # -------------------------
-    # DECISION THRESHOLDS
+    # THRESHOLDS
     # -------------------------
     COSINE_THRESHOLD = 0.4
-    if best_score < COSINE_THRESHOLD:
-        return None
-
     MARGIN_THRESHOLD = 0.2
-    if best_score - second_best_score < MARGIN_THRESHOLD:
-        return None
+
+    # If confidence is low → Neutral
+    if best_score < COSINE_THRESHOLD:
+        return {
+            "key": "Neutral",
+            "name": "Neutral"
+        }
+
+    # If ambiguous → Neutral
+    if (best_score - second_best_score) < MARGIN_THRESHOLD:
+        return {
+            "key": "Neutral",
+            "name": "Neutral"
+        }
 
     return best
