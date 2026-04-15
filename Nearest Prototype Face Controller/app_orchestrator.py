@@ -35,6 +35,7 @@ class AppOrchestrator(QObject):
         self.gesture_count = 0
         self.STABLE_FRAMES = 5
         self.min_pitch, self.max_pitch, self.min_yaw, self.max_yaw = self.config.get_calibration()
+        self.mouse_speed = self.config.get_mouse_speed()
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -85,10 +86,8 @@ class AppOrchestrator(QObject):
         gesture = gestures.compute_gesture(self.current_blendshapes, self.config.get_config(), self.blendshape_order)
         self._process_gesture(gesture)
         
-        print(self.min_pitch, self.max_pitch, self.min_yaw, self.max_yaw)
         if self.enabled:
             if self._calibration_valid():
-                print(self.current_pitch, self.current_yaw)
                 self.mouse.update(
                 self.current_pitch,
                 self.current_yaw,
@@ -96,6 +95,7 @@ class AppOrchestrator(QObject):
                 self.max_pitch,
                 self.min_yaw,
                 self.max_yaw,
+                self.mouse_speed
                 )
         
         # -------------------------
@@ -166,6 +166,7 @@ class AppOrchestrator(QObject):
             self.config.save_config()
 
     def on_mouse_speed_changed(self, speed):
+        self.mouse_speed = speed
         self.config.set_mouse_speed(speed)
         self.config.save_config()
 
