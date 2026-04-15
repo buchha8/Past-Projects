@@ -34,10 +34,7 @@ class AppOrchestrator(QObject):
         self.gesture_candidate = None
         self.gesture_count = 0
         self.STABLE_FRAMES = 5
-        self.min_pitch = 0.0
-        self.max_pitch = 1.0
-        self.min_yaw = 0.0
-        self.max_yaw = 1.0
+        self.min_pitch, self.max_pitch, self.min_yaw, self.max_yaw = self.config.get_calibration()
 
         # -------------------------
         # CONNECT UI SIGNALS
@@ -88,16 +85,18 @@ class AppOrchestrator(QObject):
         gesture = gestures.compute_gesture(self.current_blendshapes, self.config.get_config(), self.blendshape_order)
         self._process_gesture(gesture)
         
-        if self._calibration_valid():
-            print(self.current_pitch, self.current_yaw)
-            self.mouse.update(
-            self.current_pitch,
-            self.current_yaw,
-            self.min_pitch,
-            self.max_pitch,
-            self.min_yaw,
-            self.max_yaw,
-            )
+        print(self.min_pitch, self.max_pitch, self.min_yaw, self.max_yaw)
+        if self.enabled:
+            if self._calibration_valid():
+                print(self.current_pitch, self.current_yaw)
+                self.mouse.update(
+                self.current_pitch,
+                self.current_yaw,
+                self.min_pitch,
+                self.max_pitch,
+                self.min_yaw,
+                self.max_yaw,
+                )
         
         # -------------------------
         # UI UPDATE

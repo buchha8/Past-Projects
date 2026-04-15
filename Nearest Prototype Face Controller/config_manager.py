@@ -12,10 +12,10 @@ class ConfigManager:
         self.DEFAULT_CONFIG = {
             "mouse_speed": 1.0,
             "calibration": {
-                "min_pitchyaw": None,
-                "max_pitch": None,
-                "min_yaw": None,
-                "max_yaw": None
+                "min_pitch": -30.0,
+                "max_pitch": 30.0,
+                "min_yaw": -30.0,
+                "max_yaw": 0.0
             },
             "keybinds": [
                 {
@@ -32,7 +32,7 @@ class ConfigManager:
                 }
             ]
         }
-
+        self.load_config()
     # -------------------------
     # LOAD / SAVE
     # -------------------------
@@ -123,7 +123,8 @@ class ConfigManager:
         }
 
     def get_calibration(self):
-        return self.data.get("calibration", self.DEFAULT_CONFIG["calibration"])
+        return self.data["calibration"]["min_pitch"], self.data["calibration"]["max_pitch"], \
+        self.data["calibration"]["min_yaw"], self.data["calibration"]["max_yaw"]   
 
     # -------------------------
     # MOUSE SPEED

@@ -1,5 +1,7 @@
 import numpy as np
 import pyautogui
+import time
+from pynput import mouse as pynput_mouse
 
 
 class MouseController:
@@ -7,62 +9,80 @@ class MouseController:
         pyautogui.PAUSE = 0
 
         self.screen_width, self.screen_height = pyautogui.size()
-
         self.mouse_speed = mouse_speed
 
-        self.x = 0.5
-        self.y = 0.5
+        self.enabled = True
 
-        self.vx = 0.0
-        self.vy = 0.0
+        # manual override state
+        self._last_mouse_pos = None
+        self._last_manual_time = 0.0
+        self._manual_timeout = 0.5
 
-        self.smoothing = 0.88
-
-        self.yaw_sensitivity = 0.02
-        self.pitch_sensitivity = 0.02
-
-        self._initialized = False
+        self.listener = pynput_mouse.Listener(on_move=self._on_mouse_move)
+        self.listener.start()
 
     def set_speed(self, speed):
         self.mouse_speed = speed
 
-    def _project(self, pitch, yaw):
-        if pitch is None or yaw is None:
+    def set_enabled(self, enabled):
+        self.enabled = enabled
+
+    def _on_mouse_move(self, x, y):
+        if self._last_mouse_pos is None:
+            self._last_mouse_pos = (x, y)
+            return
+
+        lx, ly = self._last_mouse_pos
+        self._last_mouse_pos = (x, y)
+
+        dx = x - lx
+        dy = y - ly
+
+        if abs(dx) + abs(dy) < 3:
+            return
+
+        self._last_manual_time = time.time()
+
+    def _manual_override_active(self):
+        return (time.time() - self._last_manual_time) < self._manual_timeout
+
+    def _normalize_centered(self, value, min_val, max_val):
+        if value is None or min_val is None or max_val is None:
             return None
 
-        if not np.isfinite(pitch) or not np.isfinite(yaw):
+        if not np.isfinite(value):
             return None
 
-        # unbounded linear projection (NO CLAMP HERE)
-        x = yaw * self.yaw_sensitivity
-        y = pitch * self.pitch_sensitivity
+        center = 0.5 * (min_val + max_val)
+        half_range = 0.5 * (max_val - min_val)
 
-        return x, y
+        if abs(half_range) < 1e-6:
+            return None
+
+        return (value - center) / half_range
 
     def update(self, pitch, yaw, min_pitch, max_pitch, min_yaw, max_yaw, speed=None):
         if speed is not None:
             self.mouse_speed = speed
 
-        target = self._project(pitch, yaw)
-
-        if target is None:
+        # hard gates
+        if not self.enabled:
             return
 
-        tx, ty = target
-
-        if not self._initialized:
-            self.x = tx
-            self.y = ty
-            self._initialized = True
+        if self._manual_override_active():
             return
 
-        self.x = self.x * self.smoothing + tx * (1.0 - self.smoothing)
-        self.y = self.y * self.smoothing + ty * (1.0 - self.smoothing)
+        nx = self._normalize_centered(yaw, min_yaw, max_yaw)
+        ny = self._normalize_centered(pitch, min_pitch, max_pitch)
 
-        screen_x = 0.5 + self.x
+        if nx is None or ny is None:
+            return
 
-        # FIX: invert pitch direction
-        screen_y = 0.5 - self.y
+        nx *= self.mouse_speed
+        ny *= self.mouse_speed
+
+        screen_x = 0.5 + 0.5 * nx
+        screen_y = 0.5 - 0.5 * ny
 
         screen_x = float(np.clip(screen_x, 0.0, 1.0))
         screen_y = float(np.clip(screen_y, 0.0, 1.0))
