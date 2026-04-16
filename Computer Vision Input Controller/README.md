@@ -8,7 +8,7 @@ Facial recognition and landmarking are done through MediaPipe, which provides 47
 
 This was a personal project for my own use (chronic hand pain) and I can't guarantee continued updates or a bugfree experience, but feel free to use it if you'd like, and feel free to reach out to me!
 
-(https://github.com/buchha8/Past-Projects/blob/main/Computer%20Vision%20Input%20Controller/example.gif)
+![Example](https://github.com/buchha8/Past-Projects/blob/main/Computer%20Vision%20Input%20Controller/example.gif)
 
 ## How to use
 
