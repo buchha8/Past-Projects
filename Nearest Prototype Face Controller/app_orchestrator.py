@@ -43,9 +43,13 @@ class AppOrchestrator(QObject):
         self.window.mouse_speed_changed.connect(self.on_mouse_speed_changed)
         self.window.edit_sensitivity_requested.connect(self.on_edit_sensitivity)
         self.window.closed.connect(self.shutdown)
+        self.window.disable_gestures_changed.connect(self.on_disable_gestures_changed)
+        self.window.disable_mouse_changed.connect(self.on_disable_mouse_changed)
 
         self.window.update_table(self.config.get_keybinds())
         self.window.mouse_speed_slider.setValue(int(self.config.get_mouse_speed() * 10))
+        self.disable_gestures = False
+        self.disable_mouse = False
 
         # -------------------------
         # Loop
@@ -70,17 +74,24 @@ class AppOrchestrator(QObject):
         display, self.current_roll, self.current_pitch, self.current_yaw = landmarks.process_landmarks_pipeline(results, frame)
 
         # -------------------------
-        # Gesture pipeline
+        # Gesture pipeline (optional)
         # -------------------------
-        self.current_blendshapes = landmarks.extract_blendshape_vector(results)
-        if self.current_blendshapes and self.blendshape_order is None:
-            self.blendshape_order = gestures.initialize_order(self.current_blendshapes)
+        stable = None
+        new_key = None
+        enabled = False
+        gesture = None
 
-        gesture = gestures.compute_gesture(
-            self.current_blendshapes,
-            self.config.get_config(),
-            self.blendshape_order
-        )
+        if not self.disable_gestures:
+            self.current_blendshapes = landmarks.extract_blendshape_vector(results)
+
+            if self.current_blendshapes and self.blendshape_order is None:
+                self.blendshape_order = gestures.initialize_order(self.current_blendshapes)
+
+            gesture = gestures.compute_gesture(
+                self.current_blendshapes,
+                self.config.get_config(),
+                self.blendshape_order
+            )
 
         result = self.gesture_processor.update(gesture)
 
@@ -89,14 +100,23 @@ class AppOrchestrator(QObject):
         enabled = result["enabled"]
 
         # -------------------------
+        # FINAL CONTROL SIGNALS
+        # -------------------------
+        input_allowed = (not self.disable_gestures) and enabled
+        mouse_allowed = (not self.disable_mouse) and enabled
+
+        # -------------------------
         # Input handling
         # -------------------------
-        self.input.update(new_key, enabled)
+        if input_allowed:
+            self.input.update(new_key, True)
+        else:
+            self.input.update(None, False)
 
         # -------------------------
         # Mouse control
         # -------------------------
-        if enabled and self._calibration_valid():
+        if mouse_allowed and self._calibration_valid():
             self.mouse.update(
                 self.current_pitch,
                 self.current_yaw,
@@ -187,6 +207,15 @@ class AppOrchestrator(QObject):
         self.mouse.set_speed(speed)
         self.config.set_mouse_speed(speed)
         self.config.save_config()
+
+    def on_disable_gestures_changed(self, value):
+        self.disable_gestures = value
+
+        if value:
+            self.input.update(None, False)
+
+    def on_disable_mouse_changed(self, value):
+        self.disable_mouse = value
 
     # =========================================================
     # LIFECYCLE

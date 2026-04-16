@@ -19,6 +19,8 @@ class MainWindow(QWidget):
     calibrate_requested = Signal(int)
     mouse_speed_changed = Signal(float)
     closed = Signal()
+    disable_gestures_changed = Signal(bool)
+    disable_mouse_changed = Signal(bool)
 
     def __init__(self):
         super().__init__()
@@ -97,6 +99,18 @@ class MainWindow(QWidget):
         layout.addWidget(self.mouse_speed_slider)
 
         # -------------------------
+        # DISABLE CONTROLS
+        # -------------------------
+        self.disable_gestures_checkbox = QPushButton("Disable Gestures")
+        self.disable_gestures_checkbox.setCheckable(True)
+
+        self.disable_mouse_checkbox = QPushButton("Disable Mouse")
+        self.disable_mouse_checkbox.setCheckable(True)
+
+        layout.addWidget(self.disable_gestures_checkbox)
+        layout.addWidget(self.disable_mouse_checkbox)
+
+        # -------------------------
         # SIGNAL WIRING (UI INTERNAL ONLY)
         # -------------------------
         self.add_btn.clicked.connect(self._on_add_clicked)
@@ -105,6 +119,8 @@ class MainWindow(QWidget):
         self.edit_gesture_btn.clicked.connect(self._on_edit_gesture_clicked)
         self.edit_sensitivity_btn.clicked.connect(self._on_edit_sensitivity_clicked)
         self.calibrate_btn.clicked.connect(self._on_calibrate_clicked)
+        self.disable_gestures_checkbox.toggled.connect(self.disable_gestures_changed.emit)
+        self.disable_mouse_checkbox.toggled.connect(self.disable_mouse_changed.emit)
     
     # -------------------------
     # INTERNAL EVENT TRANSLATION
