@@ -24,9 +24,8 @@ class MouseController:
         self.listener.start()
 
         # -------------------------
-        # KALMAN FILTER STATE
+        # Kalman filter (state: x, vx, y, vy)
         # -------------------------
-        # state = [x, vx, y, vy]
         self.state = np.array([
             0.5 * self.screen_width, 0.0,
             0.5 * self.screen_height, 0.0
@@ -35,12 +34,11 @@ class MouseController:
         self.P = np.eye(4) * 200.0
         self.I = np.eye(4)
 
-        # noise
         self.q = 2.0
         self.r = 3000.0
 
         # -------------------------
-        # PID STATE
+        # PID state
         # -------------------------
         self.kp = 0.12
         self.ki = 0.00001
@@ -60,11 +58,11 @@ class MouseController:
         self._dey_s = 0.0
 
         # -------------------------
-        # HYSTERESIS
+        # transition zone (NEW)
         # -------------------------
-        self._active_control = True
-        self.enter_deadzone = 60.0
         self.exit_deadzone = 50.0
+        self.enter_deadzone = 70.0
+        self._control_gain = 1.0
 
     # -------------------------
     # manual override
@@ -107,7 +105,7 @@ class MouseController:
         return (value - center) / half_range
 
     # -------------------------
-    # KALMAN FILTER (REAL)
+    # Kalman filter
     # -------------------------
     def _kalman_update(self, mx, my, dt):
         A = np.array([
@@ -144,19 +142,24 @@ class MouseController:
         self.P = (self.I - K @ H) @ P_pred
 
     # -------------------------
-    # hysteresis
+    # transition zone hysteresis
     # -------------------------
     def _update_hysteresis(self, ex, ey):
         mag = max(abs(ex), abs(ey))
 
-        if self._active_control:
-            if mag < self.exit_deadzone:
-                self._active_control = False
-        else:
-            if mag > self.enter_deadzone:
-                self._active_control = True
+        if mag <= self.exit_deadzone:
+            self._control_gain = 0.0
 
-        return self._active_control
+        elif mag >= self.enter_deadzone:
+            self._control_gain = 1.0
+
+        else:
+            self._control_gain = (
+                (mag - self.exit_deadzone) /
+                (self.enter_deadzone - self.exit_deadzone)
+            )
+
+        return self._control_gain
 
     # -------------------------
     # PID
@@ -167,7 +170,10 @@ class MouseController:
         ex = target_x - cx
         ey = target_y - cy
 
-        if not self._update_hysteresis(ex, ey):
+        gain = self._update_hysteresis(ex, ey)
+
+        # fade-out instead of hard stop
+        if gain <= 0.0:
             self._ix *= 0.95
             self._iy *= 0.95
             return
@@ -200,10 +206,13 @@ class MouseController:
             self.kd * self._dey_s
         )
 
-        dx = np.clip(dx, -self.max_step, self.max_step) * self.mouse_speed / 5.0
-        dy = np.clip(dy, -self.max_step, self.max_step) * self.mouse_speed / 5.0
+        dx = np.clip(dx, -self.max_step, self.max_step)
+        dy = np.clip(dy, -self.max_step, self.max_step)
 
-        pyautogui.moveRel(dx, dy)
+        dx *= self.mouse_speed * gain
+        dy *= self.mouse_speed * gain
+
+        pyautogui.moveRel(dx / 5.0, dy / 5.0)
 
     # -------------------------
     # MAIN LOOP
