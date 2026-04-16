@@ -51,7 +51,7 @@ def extract_blendshape_vector(results):
         return None
     blendshapes = results.face_blendshapes[0]
     return {
-        bs.category_name: float(bs.score)  # force Python float
+        bs.category_name: float(bs.score)
         for bs in blendshapes
     }
 
@@ -108,3 +108,27 @@ def compute_landmarks_display(landmarks_normalized, display_size=200):
     landmarks_display[:, 0] = display_size - landmarks_display[:, 0]
 
     return landmarks_display
+
+
+def process_landmarks_pipeline(results, frame):
+    """
+    Full landmarks pipeline:
+    - extract pixels
+    - extract transform
+    - compute head pose
+    - compute display coordinates
+
+    Returns:
+        display, roll, pitch, yaw
+    """
+
+    landmarks_pixels = extract_landmarks_pixels(results, frame)
+    transform_matrix = extract_transform_matrix(results)
+
+    roll, pitch, yaw = compute_head_pose_angles(transform_matrix)
+
+    centered = compute_landmarks_centered(landmarks_pixels)
+    normalized = compute_landmarks_normalized(landmarks_pixels, centered)
+    display = compute_landmarks_display(normalized)
+
+    return display, roll, pitch, yaw

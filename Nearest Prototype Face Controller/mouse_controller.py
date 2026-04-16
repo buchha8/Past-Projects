@@ -58,7 +58,7 @@ class MouseController:
         self._dey_s = 0.0
 
         # -------------------------
-        # transition zone (NEW)
+        # transition zone
         # -------------------------
         self.exit_deadzone = 50.0
         self.enter_deadzone = 70.0

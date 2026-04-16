@@ -60,7 +60,7 @@ class ConfigManager:
         return self.data
 
     # -------------------------
-    # KEYBIND OPERATIONS (MERGED FROM KEYBIND_REGISTRAR)
+    # KEYBIND OPERATIONS
     # -------------------------
     def get_keybinds(self):
         return self.data.get("keybinds", [])

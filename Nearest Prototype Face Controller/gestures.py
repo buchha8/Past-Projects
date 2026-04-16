@@ -131,3 +131,89 @@ def compute_gesture(current_blendshapes, config, order):
         }
 
     return best
+
+# =========================================================
+# GestureProcessor (stateful gesture + toggle logic)
+# =========================================================
+
+import time
+
+
+class GestureProcessor:
+    def __init__(self):
+        self.gesture_candidate = None
+        self.gesture_count = 0
+        self.STABLE_FRAMES = 5
+
+        self.stable_gesture = None
+
+        self.toggle_start_time = None
+        self.toggle_triggered = False
+
+        self.enabled = True
+
+    def update(self, gesture):
+        new_key = None
+
+        # -------------------------
+        # NO INPUT
+        # -------------------------
+        if gesture is None:
+            return {
+                "stable": self.stable_gesture,
+                "key": None,
+                "enabled": self.enabled
+            }
+
+        # -------------------------
+        # CANDIDATE TRACKING
+        # -------------------------
+        if self.gesture_candidate and gesture["key"] == self.gesture_candidate["key"]:
+            self.gesture_count += 1
+        else:
+            self.gesture_candidate = gesture
+            self.gesture_count = 1
+
+        # -------------------------
+        # STABLE UPDATE
+        # -------------------------
+        if self.gesture_count >= self.STABLE_FRAMES:
+            self.stable_gesture = self.gesture_candidate
+
+        stable = self.stable_gesture
+
+        # -------------------------
+        # TOGGLE LOGIC
+        # -------------------------
+        if stable is not None:
+            key = stable["key"]
+
+            if key == "Toggle":
+                now = time.time()
+
+                if self.toggle_start_time is None:
+                    self.toggle_start_time = now
+                    self.toggle_triggered = False
+
+                elif not self.toggle_triggered:
+                    if now - self.toggle_start_time >= 1.0:
+                        self.enabled = not self.enabled
+                        self.toggle_triggered = True
+
+                new_key = None
+
+            elif self.enabled and key != "Neutral":
+                new_key = key
+
+        # -------------------------
+        # RESET TOGGLE STATE
+        # -------------------------
+        if stable is None or stable["key"] != "Toggle":
+            self.toggle_start_time = None
+            self.toggle_triggered = False
+
+        return {
+            "stable": stable,
+            "key": new_key,
+            "enabled": self.enabled
+        }
