@@ -1,0 +1,22 @@
+# Rust build output
+/target/
+
+# Generated cryptographic keys
+/keys/*
+!/keys/.gitkeep
+
+# Generated signatures
+/signatures/*
+!/signatures/.gitkeep
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
