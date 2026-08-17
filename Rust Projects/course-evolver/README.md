@@ -6,9 +6,9 @@ A population of agents attempts to navigate randomly generated obstacle courses.
 
 The project is primarily intended as an exploration of orchestrating computationally expensive workloads rather than as an optimized maze-solving system.
 
-![Example 1](https://github.com/buchha8/Past-Projects/tree/main/Rust%20Projects/course-evolver/course-evolver-1.gif)
+![Example 1](https://github.com/buchha8/Past-Projects/blob/main/Rust%20Projects/course-evolver/course-evolver-1.gif)
 
-![Example 2](https://github.com/buchha8/Past-Projects/tree/main/Rust%20Projects/course-evolver/course-evolver-2.gif)
+![Example 2](https://github.com/buchha8/Past-Projects/blob/main/Rust%20Projects/course-evolver/course-evolver-2.gif)
 
 ## Features
 
