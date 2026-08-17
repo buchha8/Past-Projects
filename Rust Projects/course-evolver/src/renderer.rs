@@ -2,7 +2,10 @@ use macroquad::prelude::*;
 
 use crate::app::App;
 use crate::course::{Cell, Position};
-use crate::history::GenerationRecord;
+use crate::history::{
+    GenerationRecord,
+    IndividualRecord,
+};
 use crate::job::JobResult;
 
 const CELL_SIZE: f32 = 12.0;
@@ -30,14 +33,30 @@ pub fn render(
     let generation =
         &history[generation_index];
 
-    let Some(result_index) =
-        app.selected_result
+    let Some(individual_index) =
+        app.selected_individual
     else {
         return;
     };
 
+    let individual =
+        &generation.individuals[
+            individual_index
+        ];
+
+    if individual.results.is_empty() {
+        return;
+    }
+
+    let course_index =
+        app.selected_course.min(
+            individual.results.len() - 1,
+        );
+
     let result =
-        &generation.results[result_index];
+        &individual.results[
+            course_index
+        ];
 
     draw_course(result);
     draw_path(app, result);
@@ -47,17 +66,22 @@ pub fn render(
         history,
         generation_index,
         generation,
+        individual,
+        individual_index,
         result,
-        result_index,
+        course_index,
     );
 }
 
-fn draw_course(result: &JobResult) {
+fn draw_course(
+    result: &JobResult,
+) {
     let course = &result.course;
 
     for y in 0..course.height {
         for x in 0..course.width {
-            let position = Position { x, y };
+            let position =
+                Position { x, y };
 
             let color =
                 if position == course.start {
@@ -66,8 +90,11 @@ fn draw_course(result: &JobResult) {
                     RED
                 } else {
                     match course.cell(position) {
-                        Cell::Open => LIGHTGRAY,
-                        Cell::Obstacle => DARKGRAY,
+                        Cell::Open =>
+                            LIGHTGRAY,
+
+                        Cell::Obstacle =>
+                            DARKGRAY,
                     }
                 };
 
@@ -86,14 +113,17 @@ fn draw_path(
     app: &App,
     result: &JobResult,
 ) {
-    let path = &result.simulation.path;
+    let path =
+        &result.simulation.path;
 
     if path.is_empty() {
         return;
     }
 
     let playback_index =
-        app.playback_index.min(path.len() - 1);
+        app.playback_index.min(
+            path.len() - 1,
+        );
 
     let visible_path =
         &path[..=playback_index];
@@ -152,19 +182,43 @@ fn draw_information(
     history: &[GenerationRecord],
     generation_index: usize,
     generation: &GenerationRecord,
+    individual: &IndividualRecord,
+    individual_index: usize,
     result: &JobResult,
-    result_index: usize,
+    course_index: usize,
 ) {
     let panel_x =
         result.course.width as f32
             * CELL_SIZE
             + 20.0;
 
+    let best_fitness =
+        generation
+            .best_aggregate_fitness()
+            .unwrap_or(0.0);
+
+    let mean_fitness =
+        generation
+            .mean_aggregate_fitness()
+            .unwrap_or(0.0);
+
+    let solved_courses =
+        generation.total_courses_solved();
+
+    let total_courses =
+        generation
+            .individuals
+            .iter()
+            .map(|individual| {
+                individual.results.len()
+            })
+            .sum::<usize>();
+
     draw_text(
         "Course Evolver",
         panel_x,
-        40.0,
-        28.0,
+        25.0,
+        26.0,
         BLACK,
     );
 
@@ -175,179 +229,262 @@ fn draw_information(
             history.len()
         ),
         panel_x,
-        80.0,
-        22.0,
+        52.0,
+        18.0,
         BLACK,
     );
 
     draw_text(
         &format!(
-            "Generation ID: {}",
-            generation.generation
+            "Best aggregate: {:.2}",
+            best_fitness
         ),
         panel_x,
-        110.0,
-        22.0,
+        74.0,
+        18.0,
         BLACK,
     );
 
     draw_text(
         &format!(
-            "Individual: {}",
-            result.individual_id
+            "Mean aggregate: {:.2}",
+            mean_fitness
         ),
         panel_x,
-        140.0,
-        22.0,
+        96.0,
+        18.0,
         BLACK,
     );
 
     draw_text(
         &format!(
-            "Result: {} / {}",
-            result_index + 1,
-            generation.results.len()
+            "Course solves: {} / {}",
+            solved_courses,
+            total_courses
         ),
         panel_x,
-        170.0,
-        22.0,
-        BLACK,
-    );
-
-    draw_text(
-        &format!("Job: {}", result.job_id),
-        panel_x,
-        200.0,
-        22.0,
+        118.0,
+        18.0,
         BLACK,
     );
 
     draw_text(
         &format!(
-            "Fitness: {:.2}",
+            "Individual: {} / {}  ID {}",
+            individual_index + 1,
+            generation.individuals.len(),
+            individual.individual_id
+        ),
+        panel_x,
+        150.0,
+        18.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Aggregate fitness: {:.2}",
+            individual.aggregate_fitness
+        ),
+        panel_x,
+        172.0,
+        18.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Course: {} / {}",
+            course_index + 1,
+            individual.results.len()
+        ),
+        panel_x,
+        194.0,
+        18.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "COURSE FITNESS: {:.2}",
             result.fitness
         ),
         panel_x,
-        230.0,
-        22.0,
+        224.0,
+        20.0,
+        BLACK,
+    );
+
+    let breakdown =
+        &result.fitness_breakdown;
+
+    draw_text(
+        &format!(
+            "Progress: {} cells   {:+.2}",
+            breakdown.progress_cells,
+            breakdown.progress_fitness
+        ),
+        panel_x,
+        252.0,
+        17.0,
         BLACK,
     );
 
     draw_text(
         &format!(
-            "Steps: {}",
+            "Steps to closest: {}   {:+.2}",
+            breakdown.steps_to_closest,
+            breakdown.steps_to_closest_fitness
+        ),
+        panel_x,
+        274.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Unique cells: {}    {:+.2}",
+            breakdown.unique_cells,
+            breakdown.unique_cell_fitness
+        ),
+        panel_x,
+        296.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Successful moves: {}  {:+.2}",
+            breakdown.successful_moves,
+            breakdown.successful_move_fitness
+        ),
+        panel_x,
+        318.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Revisits: {}        {:+.2}",
+            breakdown.revisits,
+            breakdown.revisit_fitness
+        ),
+        panel_x,
+        340.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Collisions: {}      {:+.2}",
+            breakdown.collisions,
+            breakdown.collision_fitness
+        ),
+        panel_x,
+        362.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Goal reward:       {:+.2}",
+            breakdown.goal_fitness
+        ),
+        panel_x,
+        384.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Solution steps:    {:+.2}",
+            breakdown.solution_step_fitness
+        ),
+        panel_x,
+        406.0,
+        17.0,
+        BLACK,
+    );
+
+    draw_text(
+        &format!(
+            "Reached goal: {}   Steps: {}",
+            result.simulation.reached_goal,
             result.simulation.steps
         ),
         panel_x,
-        260.0,
-        22.0,
+        438.0,
+        17.0,
         BLACK,
     );
 
     draw_text(
         &format!(
-            "Collisions: {}",
-            result.simulation.collisions
-        ),
-        panel_x,
-        290.0,
-        22.0,
-        BLACK,
-    );
-
-    draw_text(
-        &format!(
-            "Reached goal: {}",
-            result.simulation.reached_goal
-        ),
-        panel_x,
-        320.0,
-        22.0,
-        BLACK,
-    );
-
-    draw_text(
-        &format!(
-            "Playback: {}",
-            app.playback_index
-        ),
-        panel_x,
-        370.0,
-        22.0,
-        BLACK,
-    );
-
-    draw_text(
-        &format!(
-            "Speed: {:.0} steps/sec",
+            "Playback: {}   Speed: {:.0}/s",
+            app.playback_index,
             app.playback_speed
         ),
         panel_x,
-        400.0,
-        22.0,
+        460.0,
+        17.0,
         BLACK,
     );
 
-    let playback_status =
+    draw_text(
         if app.playing {
             "Playing"
         } else {
             "Paused"
-        };
-
-    draw_text(
-        playback_status,
+        },
         panel_x,
-        430.0,
-        22.0,
+        482.0,
+        17.0,
         BLACK,
     );
 
     draw_text(
-        "PageUp/PageDown: generation",
+        "PgUp/PgDn: generation",
         panel_x,
-        480.0,
-        18.0,
+        518.0,
+        15.0,
         BLACK,
     );
 
     draw_text(
         "Left/Right: individual",
         panel_x,
-        505.0,
-        18.0,
+        538.0,
+        15.0,
         BLACK,
     );
 
     draw_text(
-        "B: best individual",
+        "B: best individual + course",
         panel_x,
-        530.0,
-        18.0,
+        558.0,
+        15.0,
         BLACK,
     );
 
     draw_text(
-        "Space: play/pause",
+        ", / . : course",
         panel_x,
-        555.0,
-        18.0,
+        578.0,
+        15.0,
         BLACK,
     );
 
     draw_text(
-        "R: restart",
+        "Space: pause   R: restart",
         panel_x,
-        580.0,
-        18.0,
-        BLACK,
-    );
-
-    draw_text(
-        "Up/Down: speed",
-        panel_x,
-        605.0,
-        18.0,
+        598.0,
+        15.0,
         BLACK,
     );
 }

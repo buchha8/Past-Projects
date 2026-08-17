@@ -12,14 +12,23 @@ mod simulation;
 
 use app::App;
 use controller::RunController;
-use macroquad::prelude::next_frame;
+use macroquad::prelude::{next_frame, Conf};
 
 const WORKER_COUNT: usize = 4;
-const POPULATION_SIZE: usize = 20;
-const MAX_STEPS: usize = 5_000;
+const POPULATION_SIZE: usize = 100;
+const MAX_STEPS: usize = 2_000;
 const GENERATION_COUNT: usize = 100;
 
-#[macroquad::main("Course Evolver")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Course Evolver".to_owned(),
+        window_width: 1000,
+        window_height: 600,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let mut controller =
         RunController::new(

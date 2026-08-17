@@ -30,16 +30,23 @@ impl RunController {
         assert!(generation_limit > 0);
 
         let mut controller = Self {
-            scheduler: Scheduler::new(worker_count),
+            scheduler:
+                Scheduler::new(worker_count),
 
-            evolution: Evolution::new(
-                population_size,
-                max_steps,
-            ),
+            evolution:
+                Evolution::new(
+                    population_size,
+                    max_steps,
+                ),
 
-            pending_jobs: VecDeque::new(),
-            current_results: Vec::new(),
-            history: Vec::new(),
+            pending_jobs:
+                VecDeque::new(),
+
+            current_results:
+                Vec::new(),
+
+            history:
+                Vec::new(),
 
             expected_jobs: 0,
             completed_jobs: 0,
@@ -62,26 +69,29 @@ impl RunController {
         self.collect_results();
     }
 
-    pub fn history(&self) -> &[GenerationRecord] {
+    pub fn history(
+        &self,
+    ) -> &[GenerationRecord] {
         &self.history
     }
 
-    pub fn finished(&self) -> bool {
-        self.finished
-    }
-
     fn queue_generation(&mut self) {
-        let jobs = self.evolution.create_jobs();
+        let jobs =
+            self.evolution.create_jobs();
 
-        self.expected_jobs = jobs.len();
+        self.expected_jobs =
+            jobs.len();
+
         self.completed_jobs = 0;
+
         self.current_results.clear();
 
         self.pending_jobs.extend(jobs);
 
         println!(
-            "Starting generation {}",
-            self.evolution.generation()
+            "Starting generation {} with {} jobs",
+            self.evolution.generation(),
+            self.expected_jobs,
         );
     }
 
@@ -93,7 +103,9 @@ impl RunController {
                 Ok(()) => {}
 
                 Err(job) => {
-                    self.pending_jobs.push_front(job);
+                    self.pending_jobs
+                        .push_front(job);
+
                     break;
                 }
             }
@@ -105,14 +117,17 @@ impl RunController {
             self.scheduler.try_receive()
         {
             println!(
-                "Generation {} individual {} (job {}) completed: fitness = {:.2}",
+                "Generation {} individual {} course {} (job {}) completed: fitness = {:.2}",
                 result.generation,
                 result.individual_id,
+                result.course_index,
                 result.job_id,
                 result.fitness,
             );
 
-            self.current_results.push(result);
+            self.current_results
+                .push(result);
+
             self.completed_jobs += 1;
 
             if self.completed_jobs
@@ -125,31 +140,15 @@ impl RunController {
     }
 
     fn finish_generation(&mut self) {
-        self.current_results
-            .sort_by_key(|result| {
-                result.individual_id
-            });
-
         let generation = self
             .current_results
             .first()
-            .map(|result| result.generation)
+            .map(
+                |result| result.generation,
+            )
             .expect(
                 "Completed generation has no results",
             );
-
-        let best_fitness = self
-            .current_results
-            .iter()
-            .map(|result| result.fitness)
-            .max_by(|a, b| a.total_cmp(b))
-            .expect(
-                "Completed generation has no fitness values",
-            );
-
-        println!(
-            "Generation {generation} completed. Best fitness: {best_fitness:.2}"
-        );
 
         let results =
             std::mem::take(
@@ -158,9 +157,45 @@ impl RunController {
 
         let record =
             GenerationRecord::new(
-                generation,
                 results,
             );
+
+        let best_fitness = record
+            .individuals
+            .iter()
+            .map(
+                |individual| {
+                    individual
+                        .aggregate_fitness
+                },
+            )
+            .max_by(
+                |a, b| a.total_cmp(b),
+            )
+            .expect(
+                "Completed generation has no individuals",
+            );
+
+        println!(
+            "Generation {generation} completed. Best aggregate fitness: {best_fitness:.2}"
+        );
+
+        let evaluations:
+            Vec<(u64, f64)> =
+            record
+                .individuals
+                .iter()
+                .map(
+                    |individual| {
+                        (
+                            individual
+                                .individual_id,
+                            individual
+                                .aggregate_fitness,
+                        )
+                    },
+                )
+                .collect();
 
         let completed_generation_count =
             self.history.len() + 1;
@@ -170,7 +205,7 @@ impl RunController {
         {
             self.evolution
                 .advance_generation(
-                    &record.results,
+                    &evaluations,
                 );
         }
 

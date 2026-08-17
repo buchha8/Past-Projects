@@ -168,7 +168,6 @@ impl<P: Policy> Simulation<P> {
             reached_goal: self.reached_goal,
             steps: self.steps,
             collisions: self.agent.collisions,
-            final_position: self.agent.position,
             path: self.agent.path.clone(),
         }
     }
@@ -178,6 +177,5 @@ pub struct SimulationResult {
     pub reached_goal: bool,
     pub steps: usize,
     pub collisions: usize,
-    pub final_position: Position,
     pub path: Vec<Position>,
 }
